@@ -181,10 +181,16 @@ const ButtonCountdown = ({ targetDate }: { targetDate: string }) => {
         setTime('00:00:00');
         return;
       }
+      const d = Math.floor(distance / (1000 * 60 * 60 * 24));
       const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
       const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
       const s = Math.floor((distance % (1000 * 60)) / 1000);
-      setTime(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+      
+      const timeStr = d > 0 
+        ? `${d}d ${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+        : `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+      
+      setTime(timeStr);
     };
     update();
     const i = setInterval(update, 1000);
