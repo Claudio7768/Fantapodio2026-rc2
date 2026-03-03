@@ -116,6 +116,59 @@ const formatMilanTime = (isoString: string) => {
   });
 };
 
+const Countdown = ({ targetDate }: { targetDate: string }) => {
+  const [timeLeft, setTimeLeft] = useState<{ days: number, hours: number, minutes: number, seconds: number } | null>(null);
+
+  useEffect(() => {
+    const calculate = () => {
+      const now = new Date().getTime();
+      const distance = new Date(targetDate).getTime() - now;
+
+      if (distance < 0) {
+        setTimeLeft(null);
+        return false;
+      } else {
+        setTimeLeft({
+          days: Math.floor(distance / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+          minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
+          seconds: Math.floor((distance % (1000 * 60)) / 1000)
+        });
+        return true;
+      }
+    };
+
+    calculate();
+    const timer = setInterval(() => {
+      if (!calculate()) clearInterval(timer);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [targetDate]);
+
+  if (!timeLeft) return (
+    <div className="flex items-center gap-2 text-white/20 font-black italic uppercase text-[10px] tracking-widest">
+      <Zap className="w-3 h-3 text-[#e10600]" /> Session Live
+    </div>
+  );
+
+  return (
+    <div className="flex gap-2 sm:gap-3 justify-center">
+      {[
+        { label: 'Days', value: timeLeft.days },
+        { label: 'Hrs', value: timeLeft.hours },
+        { label: 'Min', value: timeLeft.minutes },
+        { label: 'Sec', value: timeLeft.seconds }
+      ].map(item => (
+        <div key={item.label} className="flex flex-col items-center bg-white/5 border border-white/5 rounded-xl p-2 min-w-[45px] sm:min-w-[60px] backdrop-blur-sm">
+          <span className="text-lg sm:text-xl font-black italic text-[#e10600] leading-none">{item.value}</span>
+          <span className="text-[7px] sm:text-[8px] uppercase font-bold text-white/20 tracking-widest mt-1">{item.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 // --- Components ---
 
 const Header = ({ user, onLogout }: { user: any, onLogout: () => void }) => (
@@ -621,7 +674,15 @@ export default function App() {
             <h1 className="text-3xl sm:text-5xl font-black tracking-tighter italic uppercase leading-none">
               Fantapodio <span className="text-[#e10600]">2026</span>
             </h1>
-            <p className="text-white/20 text-xs uppercase tracking-[0.3em] font-bold mt-4">Paddock Access Required</p>
+            
+            {gps.find(g => !g.completed) && (
+              <div className="mt-8 space-y-4">
+                <div className="text-[10px] text-white/20 uppercase font-black tracking-[0.3em]">Next Lights Out: {gps.find(g => !g.completed)?.name}</div>
+                <Countdown targetDate={gps.find(g => !g.completed)!.start_time} />
+              </div>
+            )}
+
+            <p className="text-white/20 text-xs uppercase tracking-[0.3em] font-bold mt-8">Paddock Access Required</p>
           </div>
           
           <div className="f1-card p-6 sm:p-10 space-y-8 sm:space-y-10">
@@ -757,10 +818,17 @@ export default function App() {
                     
                     <div className="space-y-2 sm:space-y-3">
                       <h2 className="text-3xl sm:text-6xl lg:text-7xl font-black italic uppercase tracking-tighter leading-tight sm:leading-none">{selectedGp?.name}</h2>
-                      <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-white/40 font-bold uppercase text-[10px] sm:text-sm tracking-widest">
-                        <span>{selectedGp?.location}</span>
-                        <span className="hidden sm:block w-1.5 h-1.5 bg-[#e10600] rounded-full" />
-                        <span>{selectedGp?.date}</span>
+                      <div className="flex flex-wrap items-center justify-between gap-4">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-white/40 font-bold uppercase text-[10px] sm:text-sm tracking-widest">
+                          <span>{selectedGp?.location}</span>
+                          <span className="hidden sm:block w-1.5 h-1.5 bg-[#e10600] rounded-full" />
+                          <span>{selectedGp?.date}</span>
+                        </div>
+                        {selectedGp && !selectedGp.completed && (
+                          <div className="bg-black/20 p-2 rounded-2xl border border-white/5">
+                            <Countdown targetDate={selectedGp.start_time} />
+                          </div>
+                        )}
                       </div>
                     </div>
 
