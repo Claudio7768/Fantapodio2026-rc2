@@ -125,29 +125,29 @@ const Header = ({ user, onLogout }: { user: any, onLogout: () => void }) => (
         <div className="h-10 w-14 bg-[#e10600] flex items-center justify-center rounded-xl shadow-lg shadow-red-600/20">
           <span className="text-white font-black italic text-2xl">F1</span>
         </div>
-        <h1 className="text-2xl font-black tracking-tighter italic uppercase hidden sm:block">
-          Fantapodio <span className="text-[#e10600]">2026</span> <span className="text-[10px] bg-[#e10600] text-white px-2 py-0.5 rounded-full ml-2 not-italic tracking-widest">DARK EDITION</span>
+        <h1 className="text-lg sm:text-2xl font-black tracking-tighter italic uppercase block">
+          Fantapodio <span className="text-[#e10600]">2026</span> <span className="text-[8px] sm:text-[10px] bg-[#e10600] text-white px-2 py-0.5 rounded-full ml-1 sm:ml-2 not-italic tracking-widest">DARK EDITION</span>
         </h1>
       </div>
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-2 sm:gap-6">
         {user ? (
-          <div className="flex items-center gap-4 bg-white/5 p-2 pr-4 rounded-2xl border border-white/5">
-            <div className="w-10 h-10 bg-[#e10600] rounded-xl flex items-center justify-center font-black italic text-lg">
+          <div className="flex items-center gap-2 sm:gap-4 bg-white/5 p-1 sm:p-2 pr-3 sm:pr-4 rounded-xl sm:rounded-2xl border border-white/5">
+            <div className="w-8 h-8 sm:w-10 h-10 bg-[#e10600] rounded-lg sm:rounded-xl flex items-center justify-center font-black italic text-sm sm:text-lg">
               {user.team_name.substring(0, 2).toUpperCase()}
             </div>
             <div className="flex flex-col">
-              <span className="text-[10px] uppercase font-bold text-white/40 tracking-widest">Team</span>
-              <span className="text-sm font-black italic uppercase leading-none">{user.team_name}</span>
+              <span className="text-[8px] sm:text-[10px] uppercase font-bold text-white/40 tracking-widest">Team</span>
+              <span className="text-xs sm:text-sm font-black italic uppercase leading-none">{user.team_name}</span>
             </div>
             <button 
               onClick={onLogout} 
-              className="ml-2 p-2 hover:bg-white/10 rounded-xl transition-colors text-white/40 hover:text-[#e10600]"
+              className="ml-1 sm:ml-2 p-1.5 sm:p-2 hover:bg-white/10 rounded-lg sm:rounded-xl transition-colors text-white/40 hover:text-[#e10600]"
             >
-              <LogOut className="w-5 h-5" />
+              <LogOut className="w-4 h-4 sm:w-5 h-5" />
             </button>
           </div>
         ) : (
-          <div className="text-[10px] uppercase font-bold text-white/40 tracking-widest border-l border-white/10 pl-6 h-8 flex items-center">
+          <div className="text-[8px] sm:text-[10px] uppercase font-bold text-white/40 tracking-widest border-l border-white/10 pl-4 sm:pl-6 h-6 sm:h-8 flex items-center">
             Official Prediction Game
           </div>
         )}
@@ -158,29 +158,29 @@ const Header = ({ user, onLogout }: { user: any, onLogout: () => void }) => (
 
 const Leaderboard = ({ teams }: { teams: Team[] }) => (
   <section className="f1-card overflow-hidden">
-    <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/2">
-      <h2 className="font-black italic uppercase tracking-tighter flex items-center gap-2 text-lg">
-        <Trophy className="w-5 h-5 text-[#e10600]" /> Championship Standings
+    <div className="p-4 sm:p-6 border-b border-white/5 flex items-center justify-between bg-white/2">
+      <h2 className="font-black italic uppercase tracking-tighter flex items-center gap-2 text-base sm:text-lg">
+        <Trophy className="w-4 h-4 sm:w-5 h-5 text-[#e10600]" /> Championship Standings
       </h2>
     </div>
     <div className="divide-y divide-white/5">
       {teams.map((team, idx) => (
-        <div key={team.id} className="p-6 flex items-center justify-between hover:bg-white/5 transition-all group">
-          <div className="flex items-center gap-6">
-            <div className="relative w-12 h-12 flex items-center justify-center bg-white/5 rounded-2xl border border-white/5 group-hover:border-[#e10600]/30 transition-colors">
-              <span className={`text-2xl font-black italic ${idx === 0 ? 'text-[#e10600]' : 'text-white/40'}`}>
+        <div key={team.id} className="p-4 sm:p-6 flex items-center justify-between hover:bg-white/5 transition-all group">
+          <div className="flex items-center gap-4 sm:gap-6">
+            <div className="relative w-10 h-10 sm:w-12 h-12 flex items-center justify-center bg-white/5 rounded-xl sm:rounded-2xl border border-white/5 group-hover:border-[#e10600]/30 transition-colors">
+              <span className={`text-xl sm:text-2xl font-black italic ${idx === 0 ? 'text-[#e10600]' : 'text-white/40'}`}>
                 {idx + 1}
               </span>
-              {idx === 0 && <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#e10600] rounded-full shadow-lg shadow-red-600/50" />}
+              {idx === 0 && <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#e10600] rounded-full shadow-lg shadow-red-600/50" />}
             </div>
             <div className="flex flex-col">
-              <span className="font-black text-xl italic tracking-tighter uppercase leading-none">Team {team.name}</span>
-              <span className="text-[10px] uppercase text-white/20 font-bold tracking-widest mt-1">Constructor</span>
+              <span className="font-black text-lg sm:text-xl italic tracking-tighter uppercase leading-none">Team {team.name}</span>
+              <span className="text-[8px] sm:text-[10px] uppercase text-white/20 font-bold tracking-widest mt-1">Constructor</span>
             </div>
           </div>
           <div className="text-right">
-            <div className="text-3xl font-black italic leading-none text-[#e10600]">{team.total_points}</div>
-            <div className="text-[10px] uppercase text-white/30 font-bold tracking-widest">Points</div>
+            <div className="text-2xl sm:text-3xl font-black italic leading-none text-[#e10600]">{team.total_points}</div>
+            <div className="text-[8px] sm:text-[10px] uppercase text-white/30 font-bold tracking-widest">Points</div>
           </div>
         </div>
       ))}
@@ -189,39 +189,39 @@ const Leaderboard = ({ teams }: { teams: Team[] }) => (
 );
 
 const Rules = () => (
-  <section className="f1-card p-8 space-y-8">
+  <section className="f1-card p-6 sm:p-8 space-y-6 sm:space-y-8">
     <div className="flex items-center gap-3">
-      <div className="w-10 h-10 bg-[#e10600]/10 rounded-xl flex items-center justify-center">
-        <Info className="w-5 h-5 text-[#e10600]" />
+      <div className="w-8 h-8 sm:w-10 h-10 bg-[#e10600]/10 rounded-lg sm:rounded-xl flex items-center justify-center">
+        <Info className="w-4 h-4 sm:w-5 h-5 text-[#e10600]" />
       </div>
-      <h2 className="font-black italic uppercase tracking-tighter text-lg">Scoring System</h2>
+      <h2 className="font-black italic uppercase tracking-tighter text-base sm:text-lg">Scoring System</h2>
     </div>
-    <div className="grid grid-cols-1 gap-8">
-      <div className="space-y-4">
-        <h3 className="text-[#e10600] uppercase text-[10px] font-black tracking-widest italic opacity-50">Base Points</h3>
-        <div className="space-y-3">
-          <div className="flex justify-between items-center p-4 bg-white/2 rounded-2xl border border-white/5">
-            <span className="text-sm font-bold">Exact Position</span>
-            <span className="font-black italic text-[#e10600] text-lg">+25 PTS</span>
+    <div className="grid grid-cols-1 gap-6 sm:gap-8">
+      <div className="space-y-3 sm:space-y-4">
+        <h3 className="text-[#e10600] uppercase text-[8px] sm:text-[10px] font-black tracking-widest italic opacity-50">Base Points</h3>
+        <div className="space-y-2 sm:space-y-3">
+          <div className="flex justify-between items-center p-3 sm:p-4 bg-white/2 rounded-xl sm:rounded-2xl border border-white/5">
+            <span className="text-xs sm:text-sm font-bold">Exact Position</span>
+            <span className="font-black italic text-[#e10600] text-base sm:text-lg">+25 PTS</span>
           </div>
-          <div className="flex justify-between items-center p-4 bg-white/2 rounded-2xl border border-white/5">
-            <span className="text-sm font-bold">Podium Finish</span>
-            <span className="font-black italic text-blue-400 text-lg">+10 PTS</span>
+          <div className="flex justify-between items-center p-3 sm:p-4 bg-white/2 rounded-xl sm:rounded-2xl border border-white/5">
+            <span className="text-xs sm:text-sm font-bold">Podium Finish</span>
+            <span className="font-black italic text-blue-400 text-base sm:text-lg">+10 PTS</span>
           </div>
         </div>
       </div>
-      <div className="space-y-4">
-        <h3 className="text-[#e10600] uppercase text-[10px] font-black tracking-widest italic opacity-50">Bonus & Malus</h3>
-        <div className="grid grid-cols-2 gap-3">
+      <div className="space-y-3 sm:space-y-4">
+        <h3 className="text-[#e10600] uppercase text-[8px] sm:text-[10px] font-black tracking-widest italic opacity-50">Bonus & Malus</h3>
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
           {[
             { label: 'En Plein', val: '+20', color: 'text-yellow-500' },
             { label: 'Rimonta', val: '+10', color: 'text-green-500' },
             { label: 'DNF', val: '-10', color: 'text-red-500' },
             { label: 'Penalty', val: '-5', color: 'text-orange-500' }
           ].map(item => (
-            <div key={item.label} className="p-4 bg-white/2 rounded-2xl border border-white/5 text-center">
-              <div className="text-[10px] uppercase font-bold text-white/20 mb-1">{item.label}</div>
-              <div className={`font-black italic ${item.color} text-xl`}>{item.val}</div>
+            <div key={item.label} className="p-3 sm:p-4 bg-white/2 rounded-xl sm:rounded-2xl border border-white/5 text-center">
+              <div className="text-[8px] sm:text-[10px] uppercase font-bold text-white/20 mb-1">{item.label}</div>
+              <div className={`font-black italic ${item.color} text-lg sm:text-xl`}>{item.val}</div>
             </div>
           ))}
         </div>
@@ -233,13 +233,13 @@ const Rules = () => (
 const SeasonalStats = ({ stats }: { stats: SeasonStats | null }) => {
   if (!stats || stats.gps.length === 0) {
     return (
-      <div className="f1-card p-16 text-center space-y-6">
-        <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto border border-white/5">
-          <History className="w-10 h-10 text-white/20" />
+      <div className="f1-card p-8 sm:p-16 text-center space-y-6">
+        <div className="w-16 h-16 sm:w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto border border-white/5">
+          <History className="w-8 h-8 sm:w-10 h-10 text-white/20" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-2xl font-black italic uppercase tracking-tighter">No Season Data</h2>
-          <p className="text-white/20 text-sm max-w-xs mx-auto">Championship analytics will be available after the first race classification is published.</p>
+          <h2 className="text-xl sm:text-2xl font-black italic uppercase tracking-tighter">No Season Data</h2>
+          <p className="text-white/20 text-xs sm:text-sm max-w-xs mx-auto">Championship analytics will be available after the first race classification is published.</p>
         </div>
       </div>
     );
@@ -261,14 +261,14 @@ const SeasonalStats = ({ stats }: { stats: SeasonStats | null }) => {
 
   return (
     <div className="space-y-12">
-      <section className="f1-card p-10 space-y-10">
+      <section className="f1-card p-6 sm:p-10 space-y-8 sm:space-y-10">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 bg-[#e10600]/10 rounded-xl flex items-center justify-center">
             <TrendingUp className="w-5 h-5 text-[#e10600]" />
           </div>
-          <h2 className="font-black italic uppercase tracking-tighter text-xl">Points Progression</h2>
+          <h2 className="font-black italic uppercase tracking-tighter text-lg sm:text-xl">Points Progression</h2>
         </div>
-        <div className="h-[400px] w-full">
+        <div className="h-[300px] sm:h-[400px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -314,18 +314,18 @@ const SeasonalStats = ({ stats }: { stats: SeasonStats | null }) => {
       </section>
 
       <section className="f1-card overflow-hidden">
-        <div className="p-8 border-b border-white/5 bg-white/2">
-          <h2 className="font-black italic uppercase tracking-tighter flex items-center gap-3 text-xl">
+        <div className="p-6 sm:p-8 border-b border-white/5 bg-white/2">
+          <h2 className="font-black italic uppercase tracking-tighter flex items-center gap-3 text-lg sm:text-xl">
             <BarChart3 className="w-6 h-6 text-[#e10600]" /> Race Results Detail
           </h2>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        <div className="overflow-x-auto scrollbar-hide">
+          <table className="w-full text-left border-collapse min-w-[600px]">
             <thead>
               <tr className="border-b border-white/5 bg-white/1">
-                <th className="p-8 text-[10px] uppercase font-black tracking-[0.2em] text-white/20">Grand Prix</th>
+                <th className="p-4 sm:p-8 text-[8px] sm:text-[10px] uppercase font-black tracking-[0.2em] text-white/20">Grand Prix</th>
                 {stats.stats.map(team => (
-                  <th key={team.team_id} className="p-8 text-[10px] uppercase font-black tracking-[0.2em] text-white/20 text-center">
+                  <th key={team.team_id} className="p-4 sm:p-8 text-[8px] sm:text-[10px] uppercase font-black tracking-[0.2em] text-white/20 text-center">
                     Team {team.team_name}
                   </th>
                 ))}
@@ -334,18 +334,18 @@ const SeasonalStats = ({ stats }: { stats: SeasonStats | null }) => {
             <tbody className="divide-y divide-white/5">
               {stats.gps.map((gp, gpIdx) => (
                 <tr key={gp.id} className="hover:bg-white/2 transition-colors group">
-                  <td className="p-8">
-                    <div className="font-black italic text-xl uppercase tracking-tighter group-hover:text-[#e10600] transition-colors">{gp.name}</div>
-                    <div className="text-[10px] text-white/20 uppercase font-bold tracking-widest mt-1">{gp.location}</div>
+                  <td className="p-4 sm:p-8">
+                    <div className="font-black italic text-base sm:text-xl uppercase tracking-tighter group-hover:text-[#e10600] transition-colors">{gp.name}</div>
+                    <div className="text-[8px] sm:text-[10px] text-white/20 uppercase font-bold tracking-widest mt-1">{gp.location}</div>
                   </td>
                   {stats.stats.map(team => {
                     const gpData = team.gpBreakdown[gpIdx];
                     return (
-                      <td key={team.team_id} className="p-8 text-center">
-                        <div className={`font-black italic text-3xl tracking-tighter ${gpData?.points > 0 ? 'text-green-500' : 'text-white/10'}`}>
+                      <td key={team.team_id} className="p-4 sm:p-8 text-center">
+                        <div className={`font-black italic text-xl sm:text-3xl tracking-tighter ${gpData?.points > 0 ? 'text-green-500' : 'text-white/10'}`}>
                           {gpData?.points > 0 ? `+${gpData.points}` : gpData?.points || 0}
                         </div>
-                        <div className="text-[10px] text-white/20 font-bold uppercase tracking-widest mt-1">
+                        <div className="text-[8px] sm:text-[10px] text-white/20 font-bold uppercase tracking-widest mt-1">
                           Total: {gpData?.cumulative || 0}
                         </div>
                       </td>
@@ -618,25 +618,25 @@ export default function App() {
             <div className="h-16 w-24 bg-[#e10600] flex items-center justify-center rounded-2xl mx-auto mb-6 shadow-2xl shadow-red-600/40">
               <span className="text-white font-black italic text-4xl">F1</span>
             </div>
-            <h1 className="text-5xl font-black tracking-tighter italic uppercase leading-none">
+            <h1 className="text-3xl sm:text-5xl font-black tracking-tighter italic uppercase leading-none">
               Fantapodio <span className="text-[#e10600]">2026</span>
             </h1>
             <p className="text-white/20 text-xs uppercase tracking-[0.3em] font-bold mt-4">Paddock Access Required</p>
           </div>
           
-          <div className="f1-card p-10 space-y-10">
-            <div className="flex p-1.5 bg-white/5 rounded-2xl border border-white/5">
+          <div className="f1-card p-6 sm:p-10 space-y-8 sm:space-y-10">
+            <div className="flex p-1 bg-white/5 rounded-2xl border border-white/5">
               <button 
                 type="button" 
                 onClick={() => { setAuthView('login'); setAuthName(''); }} 
-                className={`flex-1 py-3 px-4 rounded-xl text-xs font-black italic uppercase transition-all ${authView === 'login' ? 'bg-[#e10600] text-white shadow-lg' : 'text-white/40 hover:text-white'}`}
+                className={`flex-1 py-2.5 sm:py-3 px-2 sm:px-4 rounded-xl text-[10px] sm:text-xs font-black italic uppercase transition-all ${authView === 'login' ? 'bg-[#e10600] text-white shadow-lg' : 'text-white/40 hover:text-white'}`}
               >
                 Login
               </button>
               <button 
                 type="button" 
                 onClick={() => { setAuthView('register'); setAuthName(''); }} 
-                className={`flex-1 py-3 px-4 rounded-xl text-xs font-black italic uppercase transition-all ${authView === 'register' ? 'bg-[#e10600] text-white shadow-lg' : 'text-white/40 hover:text-white'}`}
+                className={`flex-1 py-2.5 sm:py-3 px-2 sm:px-4 rounded-xl text-[10px] sm:text-xs font-black italic uppercase transition-all ${authView === 'register' ? 'bg-[#e10600] text-white shadow-lg' : 'text-white/40 hover:text-white'}`}
               >
                 Register
               </button>
@@ -712,19 +712,19 @@ export default function App() {
     <div className="min-h-screen bg-[#0f0f12] text-white font-sans selection:bg-[#e10600] selection:text-white pb-20">
       <Header user={user} onLogout={handleLogout} />
 
-      <main className="max-w-7xl mx-auto px-4 py-12 space-y-12">
-        <div className="flex justify-center">
-          <div className="inline-flex p-1.5 bg-white/5 rounded-3xl border border-white/5 backdrop-blur-xl shadow-2xl">
+      <main className="max-w-7xl mx-auto px-4 py-6 sm:py-12 space-y-8 sm:space-y-12">
+        <div className="flex justify-center overflow-x-auto pb-4 sm:pb-0 scrollbar-hide">
+          <div className="inline-flex p-1 bg-white/5 rounded-2xl sm:rounded-3xl border border-white/5 backdrop-blur-xl shadow-2xl">
             {[
-              { id: 'dashboard', icon: <Zap className="w-4 h-4" />, label: 'Paddock' },
-              { id: 'stats', icon: <TrendingUp className="w-4 h-4" />, label: 'Standings' },
-              { id: 'predict', icon: <Plus className="w-4 h-4" />, label: 'Predict' },
-              { id: 'admin', icon: <Settings className="w-4 h-4" />, label: 'Race Control' }
+              { id: 'dashboard', icon: <Zap className="w-3 h-3 sm:w-4 h-4" />, label: 'Paddock' },
+              { id: 'stats', icon: <TrendingUp className="w-3 h-3 sm:w-4 h-4" />, label: 'Standings' },
+              { id: 'predict', icon: <Plus className="w-3 h-3 sm:w-4 h-4" />, label: 'Predict' },
+              { id: 'admin', icon: <Settings className="w-3 h-3 sm:w-4 h-4" />, label: 'Race Control' }
             ].map((tab) => (
               <button 
                 key={tab.id}
                 onClick={() => setView(tab.id as any)}
-                className={`flex items-center gap-2 py-4 px-8 rounded-2xl text-xs font-black italic uppercase transition-all whitespace-nowrap ${view === tab.id ? 'bg-[#e10600] text-white shadow-xl shadow-red-600/20' : 'text-white/40 hover:text-white'}`}
+                className={`flex items-center gap-1.5 sm:gap-2 py-3 sm:py-4 px-4 sm:px-8 rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-black italic uppercase transition-all whitespace-nowrap ${view === tab.id ? 'bg-[#e10600] text-white shadow-xl shadow-red-600/20' : 'text-white/40 hover:text-white'}`}
               >
                 {tab.icon}
                 {tab.label}
@@ -743,42 +743,42 @@ export default function App() {
               className="grid grid-cols-1 lg:grid-cols-3 gap-10"
             >
               <div className="lg:col-span-2 space-y-12">
-                <section className="f1-card p-10 relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 p-12 opacity-[0.02] group-hover:opacity-[0.05] transition-opacity">
+                <section className="f1-card p-6 sm:p-10 relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 p-12 opacity-[0.02] group-hover:opacity-[0.05] transition-opacity hidden sm:block">
                     <Calendar className="w-64 h-64" />
                   </div>
-                  <div className="relative z-10 space-y-10">
+                  <div className="relative z-10 space-y-8 sm:space-y-10">
                     <div className="flex items-center gap-4">
-                      <span className={`px-4 py-1.5 text-[10px] font-black italic uppercase tracking-widest rounded-full ${isDeadlinePassed ? 'bg-white/5 text-white/20' : 'bg-[#e10600] text-white shadow-lg shadow-red-600/30 animate-pulse'}`}>
+                      <span className={`px-3 sm:px-4 py-1 sm:py-1.5 text-[8px] sm:text-[10px] font-black italic uppercase tracking-widest rounded-full ${isDeadlinePassed ? 'bg-white/5 text-white/20' : 'bg-[#e10600] text-white shadow-lg shadow-red-600/30 animate-pulse'}`}>
                         {isDeadlinePassed ? 'Event Live / Ended' : 'Next Grand Prix'}
                       </span>
                       <div className="h-[1px] flex-1 bg-white/5" />
                     </div>
                     
-                    <div className="space-y-3">
-                      <h2 className="text-7xl font-black italic uppercase tracking-tighter leading-none">{selectedGp?.name}</h2>
-                      <div className="flex items-center gap-4 text-white/40 font-bold uppercase text-sm tracking-widest">
+                    <div className="space-y-2 sm:space-y-3">
+                      <h2 className="text-3xl sm:text-6xl lg:text-7xl font-black italic uppercase tracking-tighter leading-tight sm:leading-none">{selectedGp?.name}</h2>
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-white/40 font-bold uppercase text-[10px] sm:text-sm tracking-widest">
                         <span>{selectedGp?.location}</span>
-                        <span className="w-1.5 h-1.5 bg-[#e10600] rounded-full" />
+                        <span className="hidden sm:block w-1.5 h-1.5 bg-[#e10600] rounded-full" />
                         <span>{selectedGp?.date}</span>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10 pt-6">
-                      <div className="space-y-3">
-                        <span className="text-[10px] uppercase font-black text-white/20 tracking-[0.3em] flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-[#e10600]" /> Session Deadline
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-10 pt-4 sm:pt-6">
+                      <div className="space-y-2 sm:space-y-3">
+                        <span className="text-[8px] sm:text-[10px] uppercase font-black text-white/20 tracking-[0.3em] flex items-center gap-2">
+                          <Clock className="w-3 h-3 sm:w-4 h-4 text-[#e10600]" /> Session Deadline
                         </span>
-                        <p className={`font-black italic text-2xl ${isDeadlinePassed ? 'text-white/20' : 'text-white'}`}>
+                        <p className={`font-black italic text-lg sm:text-2xl ${isDeadlinePassed ? 'text-white/20' : 'text-white'}`}>
                           {selectedGp ? formatMilanTime(selectedGp.start_time) : '-'}
                         </p>
                       </div>
-                      <div className="space-y-3">
-                        <span className="text-[10px] uppercase font-black text-white/20 tracking-[0.3em] flex items-center gap-2">
-                          <Search className="w-4 h-4 text-[#e10600]" /> Select Event
+                      <div className="space-y-2 sm:space-y-3">
+                        <span className="text-[8px] sm:text-[10px] uppercase font-black text-white/20 tracking-[0.3em] flex items-center gap-2">
+                          <Search className="w-3 h-3 sm:w-4 h-4 text-[#e10600]" /> Select Event
                         </span>
                         <select 
-                          className="f1-input py-3 text-xs italic uppercase appearance-none"
+                          className="f1-input py-2.5 sm:py-3 text-[10px] sm:text-xs italic uppercase appearance-none"
                           value={selectedGp?.id || ''}
                           onChange={(e) => setSelectedGp(gps.find(g => g.id === parseInt(e.target.value)) || null)}
                         >
@@ -798,36 +798,36 @@ export default function App() {
                     <h3 className="text-xs font-black uppercase tracking-[0.4em] text-white/20 whitespace-nowrap">Team Predictions</h3>
                     <div className="h-[1px] w-full bg-white/5" />
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
                     {['CL', 'ML', 'FL'].map(teamName => {
                       const pred = predictions.find(p => p.team_name === teamName);
                       return (
-                        <div key={teamName} className="f1-card p-8 space-y-8 relative group border-t-4 border-t-transparent hover:border-t-[#e10600]">
+                        <div key={teamName} className="f1-card p-6 sm:p-8 space-y-6 sm:space-y-8 relative group border-t-4 border-t-transparent hover:border-t-[#e10600]">
                           <div className="flex items-center justify-between">
-                            <span className="font-black italic text-xl tracking-tighter uppercase">Team {teamName}</span>
+                            <span className="font-black italic text-lg sm:text-xl tracking-tighter uppercase">Team {teamName}</span>
                             {pred && (
                               <button 
                                 onClick={() => copyToWhatsApp(pred)}
-                                className="p-2.5 bg-green-500/10 text-green-500 rounded-xl hover:bg-green-500 hover:text-white transition-all shadow-lg shadow-green-600/5"
+                                className="p-2 sm:p-2.5 bg-green-500/10 text-green-500 rounded-xl hover:bg-green-500 hover:text-white transition-all shadow-lg shadow-green-600/5"
                                 title="Share to WhatsApp"
                               >
-                                <MessageCircle className="w-5 h-5" />
+                                <MessageCircle className="w-4 h-4 sm:w-5 h-5" />
                               </button>
                             )}
                           </div>
                           {pred ? (
-                            <div className="space-y-4">
+                            <div className="space-y-3 sm:space-y-4">
                               {[1, 2, 3].map(pos => (
-                                <div key={pos} className="flex items-center gap-4 p-3 bg-white/2 rounded-2xl border border-white/5">
-                                  <span className={`w-8 h-8 ${pos === 1 ? 'bg-yellow-500' : pos === 2 ? 'bg-zinc-400' : 'bg-orange-600'} text-black text-[10px] font-black italic rounded-lg flex items-center justify-center shadow-lg`}>{pos}</span>
-                                  <span className="font-black italic uppercase text-sm tracking-tight">{(pred as any)[`p${pos}`]}</span>
+                                <div key={pos} className="flex items-center gap-3 sm:gap-4 p-2.5 sm:p-3 bg-white/2 rounded-xl sm:rounded-2xl border border-white/5">
+                                  <span className={`w-7 h-7 sm:w-8 h-8 ${pos === 1 ? 'bg-yellow-500' : pos === 2 ? 'bg-zinc-400' : 'bg-orange-600'} text-black text-[8px] sm:text-[10px] font-black italic rounded-lg flex items-center justify-center shadow-lg`}>{pos}</span>
+                                  <span className="font-black italic uppercase text-xs sm:text-sm tracking-tight">{(pred as any)[`p${pos}`]}</span>
                                 </div>
                               ))}
                             </div>
                           ) : (
-                            <div className="h-40 flex flex-col items-center justify-center text-white/5 space-y-3">
-                              <ShieldAlert className="w-10 h-10 opacity-10" />
-                              <span className="text-[10px] uppercase font-black tracking-widest italic">No Prediction</span>
+                            <div className="h-32 sm:h-40 flex flex-col items-center justify-center text-white/5 space-y-3">
+                              <ShieldAlert className="w-8 h-8 sm:w-10 h-10 opacity-10" />
+                              <span className="text-[8px] sm:text-[10px] uppercase font-black tracking-widest italic">No Prediction</span>
                             </div>
                           )}
                         </div>
@@ -863,12 +863,12 @@ export default function App() {
                   <button onClick={() => setView('dashboard')} className="f1-button px-12">Return to Paddock</button>
                 </div>
               ) : (
-                <form onSubmit={handlePredict} className="f1-card p-12 space-y-12 relative overflow-hidden">
+                <form onSubmit={handlePredict} className="f1-card p-6 sm:p-12 space-y-8 sm:space-y-12 relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-transparent via-[#e10600] to-transparent" />
                   
-                  <div className="text-center space-y-4">
-                    <h2 className="text-5xl font-black italic uppercase tracking-tighter">Submit Prediction</h2>
-                    <p className="text-white/20 text-[10px] uppercase font-bold tracking-[0.3em]">{selectedGp?.name} Podium Classification</p>
+                  <div className="text-center space-y-3 sm:space-y-4">
+                    <h2 className="text-3xl sm:text-5xl font-black italic uppercase tracking-tighter">Submit Prediction</h2>
+                    <p className="text-white/20 text-[8px] sm:text-[10px] uppercase font-bold tracking-[0.3em]">{selectedGp?.name} Podium Classification</p>
                   </div>
 
                   <div className="space-y-8">
@@ -908,19 +908,19 @@ export default function App() {
 
           {view === 'admin' && (
             <motion.div key="admin" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="max-w-3xl mx-auto">
-              <form onSubmit={handleSaveResult} className="f1-card p-12 space-y-12">
-                <div className="flex items-start justify-between">
+              <form onSubmit={handleSaveResult} className="f1-card p-6 sm:p-12 space-y-8 sm:space-y-12">
+                <div className="flex flex-col sm:flex-row items-start justify-between gap-6">
                   <div className="space-y-2">
-                    <h2 className="text-4xl font-black italic uppercase tracking-tighter flex items-center gap-4">
-                      <ShieldAlert className="w-10 h-10 text-[#e10600]" /> Race Control
+                    <h2 className="text-2xl sm:text-4xl font-black italic uppercase tracking-tighter flex items-center gap-3 sm:gap-4">
+                      <ShieldAlert className="w-8 h-8 sm:w-10 h-10 text-[#e10600]" /> Race Control
                     </h2>
-                    <p className="text-white/20 text-[10px] uppercase tracking-[0.3em] font-bold">Official Classification: {selectedGp?.name}</p>
+                    <p className="text-white/20 text-[8px] sm:text-[10px] uppercase tracking-[0.3em] font-bold">Official Classification: {selectedGp?.name}</p>
                   </div>
                   <button 
                     type="button"
                     onClick={fetchFIAResults}
                     disabled={isFetchingFIA}
-                    className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl px-8 py-4 text-[10px] font-black italic uppercase flex items-center gap-3 transition-all disabled:opacity-50 text-white shadow-xl"
+                    className="w-full sm:w-auto bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl px-6 sm:px-8 py-3 sm:py-4 text-[8px] sm:text-[10px] font-black italic uppercase flex items-center justify-center gap-3 transition-all disabled:opacity-50 text-white shadow-xl"
                   >
                     {isFetchingFIA ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4 text-yellow-500" />}
                     AI Scrutineering
