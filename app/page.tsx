@@ -453,6 +453,7 @@ export default function App() {
   const [seasonStats, setSeasonStats] = useState<SeasonStats | null>(null);
   const [view, setView] = useState<'dashboard' | 'predict' | 'stats' | 'admin'>('dashboard');
   const [isFetchingFIA, setIsFetchingFIA] = useState(false);
+  const [isPredicting, setIsPredicting] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [authView, setAuthView] = useState<'login' | 'register'>('login');
   const [authName, setAuthName] = useState('');
@@ -517,7 +518,7 @@ export default function App() {
       setSeasonStats(statsData);
       
       const nextGp = gpsData.find((g: GP) => !g.completed);
-      if (nextGp) setSelectedGp(nextGp);
+      if (nextGp && !selectedGp) setSelectedGp(nextGp);
     } catch (e) {
       console.error('fetchData error:', e);
     }
@@ -605,27 +606,48 @@ export default function App() {
     }
   }, [selectedGp]);
 
+  const fetchPredictions = async (gpId: number) => {
+    try {
+      const res = await fetch(`/api/predictions?gpId=${gpId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setPredictions(data);
+      }
+    } catch (e) {
+      console.error('fetchPredictions error:', e);
+    }
+  };
+
   const handlePredict = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedGp || !user || !p1 || !p2 || !p3) return;
+    if (!selectedGp || !user || !p1 || !p2 || !p3 || isPredicting) return;
 
-    const res = await fetch('/api/predictions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        gp_id: selectedGp.id,
-        team_id: user.team_id,
-        p1, p2, p3
-      })
-    });
+    setIsPredicting(true);
+    try {
+      const res = await fetch('/api/predictions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gp_id: selectedGp.id,
+          team_id: user.team_id,
+          p1, p2, p3
+        })
+      });
 
-    if (res.ok) {
-      fetchData();
-      setP1(''); setP2(''); setP3('');
-      alert('Pronostico salvato!');
-    } else {
-      const err = await res.json();
-      alert(`Errore: ${err.error}`);
+      if (res.ok) {
+        await fetchPredictions(selectedGp.id);
+        await fetchData();
+        setP1(''); setP2(''); setP3('');
+        alert('Pronostico salvato!');
+      } else {
+        const err = await res.json();
+        alert(`Errore: ${err.error}`);
+      }
+    } catch (error: any) {
+      console.error('handlePredict error:', error);
+      alert(`Errore di rete: ${error.message}`);
+    } finally {
+      setIsPredicting(false);
     }
   };
 
@@ -1002,7 +1024,7 @@ export default function App() {
                     const userPred = predictions.find(p => p.team_id === user?.team_id);
                     const attempts = userPred?.attempts || 0;
                     const remaining = Math.max(0, 3 - attempts);
-                    const disabled = remaining === 0 || isDeadlinePassed;
+                    const disabled = remaining === 0 || isDeadlinePassed || isPredicting;
 
                     return (
                       <div className="space-y-4">
@@ -1012,10 +1034,16 @@ export default function App() {
                           className={`f1-button w-full py-6 text-xl flex-col gap-1 ${disabled ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}
                         >
                           <div className="flex items-center gap-2">
-                            <CheckCircle2 className="w-6 h-6" /> 
-                            <span>{remaining === 0 ? 'Attempts Exhausted' : 'Confirm Prediction'}</span>
+                            {isPredicting ? (
+                              <Loader2 className="w-6 h-6 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="w-6 h-6" /> 
+                            )}
+                            <span>
+                              {isPredicting ? 'Transmitting...' : (remaining === 0 ? 'Attempts Exhausted' : 'Confirm Prediction')}
+                            </span>
                           </div>
-                          {!disabled && selectedGp && (
+                          {!disabled && !isPredicting && selectedGp && (
                             <div className="text-[10px] font-bold opacity-70 flex items-center gap-2">
                               <span>Remaining: {remaining}/3</span>
                               <span className="w-1 h-1 bg-white/30 rounded-full" />
