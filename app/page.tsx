@@ -61,6 +61,7 @@ interface Prediction {
   p1: string;
   p2: string;
   p3: string;
+  attempts: number;
 }
 
 interface SeasonStats {
@@ -167,6 +168,30 @@ const Countdown = ({ targetDate }: { targetDate: string }) => {
       ))}
     </div>
   );
+};
+
+const ButtonCountdown = ({ targetDate }: { targetDate: string }) => {
+  const [time, setTime] = useState('');
+
+  useEffect(() => {
+    const update = () => {
+      const now = new Date().getTime();
+      const distance = new Date(targetDate).getTime() - now;
+      if (distance < 0) {
+        setTime('00:00:00');
+        return;
+      }
+      const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const s = Math.floor((distance % (1000 * 60)) / 1000);
+      setTime(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+    };
+    update();
+    const i = setInterval(update, 1000);
+    return () => clearInterval(i);
+  }, [targetDate]);
+
+  return <span>{time}</span>;
 };
 
 // --- Components ---
@@ -966,9 +991,40 @@ export default function App() {
                       </div>
                     ))}
                   </div>
-                  <button type="submit" className="f1-button w-full py-6 text-xl">
-                    <CheckCircle2 className="w-6 h-6" /> Confirm Prediction
-                  </button>
+
+                  {(() => {
+                    const userPred = predictions.find(p => p.team_id === user?.team_id);
+                    const attempts = userPred?.attempts || 0;
+                    const remaining = Math.max(0, 3 - attempts);
+                    const disabled = remaining === 0 || isDeadlinePassed;
+
+                    return (
+                      <div className="space-y-4">
+                        <button 
+                          type="submit" 
+                          disabled={disabled}
+                          className={`f1-button w-full py-6 text-xl flex-col gap-1 ${disabled ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="w-6 h-6" /> 
+                            <span>{remaining === 0 ? 'Attempts Exhausted' : 'Confirm Prediction'}</span>
+                          </div>
+                          {!disabled && selectedGp && (
+                            <div className="text-[10px] font-bold opacity-70 flex items-center gap-2">
+                              <span>Remaining: {remaining}/3</span>
+                              <span className="w-1 h-1 bg-white/30 rounded-full" />
+                              <ButtonCountdown targetDate={selectedGp.start_time} />
+                            </div>
+                          )}
+                        </button>
+                        {remaining === 0 && (
+                          <p className="text-center text-[10px] text-[#e10600] font-black uppercase tracking-widest italic animate-pulse">
+                            Maximum of 3 attempts reached for this Grand Prix
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </form>
               )}
             </motion.div>

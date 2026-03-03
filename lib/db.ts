@@ -60,6 +60,7 @@ export function getDb(): Database.Database {
         p1 TEXT,
         p2 TEXT,
         p3 TEXT,
+        attempts INTEGER DEFAULT 0,
         UNIQUE(gp_id, team_id)
       );
 

@@ -37,10 +37,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Deadline passed" }, { status: 400 });
     }
 
+    // Check attempts
+    const existing = db.prepare("SELECT attempts FROM predictions WHERE gp_id = ? AND team_id = ?").get(gp_id, team_id) as { attempts: number } | undefined;
+    if (existing && existing.attempts >= 3) {
+      return NextResponse.json({ error: "Maximum attempts (3) reached for this GP" }, { status: 400 });
+    }
+
     const upsert = db.prepare(`
-      INSERT INTO predictions (gp_id, team_id, p1, p2, p3) 
-      VALUES (?, ?, ?, ?, ?)
-      ON CONFLICT(gp_id, team_id) DO UPDATE SET p1=excluded.p1, p2=excluded.p2, p3=excluded.p3
+      INSERT INTO predictions (gp_id, team_id, p1, p2, p3, attempts) 
+      VALUES (?, ?, ?, ?, ?, 1)
+      ON CONFLICT(gp_id, team_id) DO UPDATE SET 
+        p1=excluded.p1, 
+        p2=excluded.p2, 
+        p3=excluded.p3,
+        attempts = predictions.attempts + 1
     `);
     upsert.run(gp_id, team_id, p1, p2, p3);
     return NextResponse.json({ success: true });
