@@ -32,6 +32,8 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { gp_id, team_id, p1, p2, p3 } = body;
     
+    console.log(`Saving prediction for team ${team_id}, GP ${gp_id}: ${p1}, ${p2}, ${p3}`);
+    
     const gpIdNum = parseInt(gp_id);
     const teamIdNum = parseInt(team_id);
 

@@ -640,7 +640,8 @@ export default function App() {
 
   // Sync form with existing prediction
   useEffect(() => {
-    if (user && selectedGp) {
+    // Only sync if we have all necessary data and are NOT currently fetching
+    if (!isFetchingPredictions && user && selectedGp) {
       const myPred = predictions.find(p => p.team_id === user.team_id && p.gp_id === selectedGp.id);
       if (myPred) {
         console.log('Syncing form with found prediction:', myPred);
@@ -648,16 +649,13 @@ export default function App() {
         setP2(myPred.p2);
         setP3(myPred.p3);
       } else {
-        // Only clear if we are NOT currently fetching
-        if (!isFetchingPredictions) {
-          console.log('No prediction found for user, clearing form');
-          setP1('');
-          setP2('');
-          setP3('');
-        }
+        console.log('No prediction found for user in current predictions list, clearing form');
+        setP1('');
+        setP2('');
+        setP3('');
       }
-    } else {
-      // No user or no GP selected, clear form
+    } else if (!user && !isFetchingPredictions) {
+      // If definitely no user and not loading, clear form
       setP1('');
       setP2('');
       setP3('');
