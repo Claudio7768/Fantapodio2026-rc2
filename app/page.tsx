@@ -594,8 +594,19 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    await fetch('/api/auth/logout');
-    setUser(null);
+    try {
+      await fetch('/api/auth/logout');
+      setUser(null);
+      setAuthView('login');
+      setAuthName('');
+      setAuthPassword('');
+      setView('dashboard');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Fallback local clear
+      setUser(null);
+      setAuthView('login');
+    }
   };
 
   useEffect(() => {
@@ -638,14 +649,16 @@ export default function App() {
         await fetchPredictions(selectedGp.id);
         await fetchData();
         setP1(''); setP2(''); setP3('');
-        alert('Pronostico salvato!');
+        // Visual feedback could be improved beyond alert, but alert is a start.
+        // Let's add a temporary success message state if needed, but for now alert is functional.
+        alert('Pronostico salvato con successo! 🏎️');
       } else {
         const err = await res.json();
-        alert(`Errore: ${err.error}`);
+        alert(`Errore nella registrazione del pronostico: ${err.error}`);
       }
     } catch (error: any) {
       console.error('handlePredict error:', error);
-      alert(`Errore di rete: ${error.message}`);
+      alert(`Errore di connessione: ${error.message}`);
     } finally {
       setIsPredicting(false);
     }
