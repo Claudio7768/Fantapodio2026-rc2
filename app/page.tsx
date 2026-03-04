@@ -454,10 +454,12 @@ export default function App() {
   const [view, setView] = useState<'dashboard' | 'predict' | 'stats' | 'admin'>('dashboard');
   const [isFetchingFIA, setIsFetchingFIA] = useState(false);
   const [isPredicting, setIsPredicting] = useState(false);
+  const [isFetchingPredictions, setIsFetchingPredictions] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [authView, setAuthView] = useState<'login' | 'register'>('login');
   const [authName, setAuthName] = useState('');
   const [authPassword, setAuthPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
   
   const [p1, setP1] = useState('');
   const [p2, setP2] = useState('');
@@ -471,6 +473,11 @@ export default function App() {
   const [rimonte, setRimonte] = useState('');
 
   useEffect(() => {
+    const savedName = localStorage.getItem('f1_team_name');
+    if (savedName) {
+      setAuthName(savedName);
+      setRememberMe(true);
+    }
     checkSession();
     fetchData();
   }, []);
@@ -517,10 +524,12 @@ export default function App() {
       setGps(gpsData);
       setSeasonStats(statsData);
       
-      const nextGp = gpsData.find((g: GP) => !g.completed);
+      const nextGp = gpsData.find((g: GP) => !g.completed) || gpsData[gpsData.length - 1];
       if (nextGp && !selectedGp) setSelectedGp(nextGp);
+      if (!nextGp) setIsFetchingPredictions(false);
     } catch (e) {
       console.error('fetchData error:', e);
+      setIsFetchingPredictions(false);
     }
   };
 
@@ -545,6 +554,11 @@ export default function App() {
         console.log('Response data:', data);
         
         if (authView === 'login') {
+          if (rememberMe) {
+            localStorage.setItem('f1_team_name', authName);
+          } else {
+            localStorage.removeItem('f1_team_name');
+          }
           const loggedUser = await checkSession();
           console.log('Session check result:', loggedUser);
           if (loggedUser) {
@@ -598,12 +612,13 @@ export default function App() {
       await fetch('/api/auth/logout');
       setUser(null);
       setAuthView('login');
-      setAuthName('');
+      // Keep the team name if it was remembered
+      const savedName = localStorage.getItem('f1_team_name');
+      setAuthName(savedName || '');
       setAuthPassword('');
       setView('dashboard');
     } catch (error) {
       console.error('Logout error:', error);
-      // Fallback local clear
       setUser(null);
       setAuthView('login');
     }
@@ -612,8 +627,13 @@ export default function App() {
   useEffect(() => {
     if (selectedGp) {
       fetchPredictions(selectedGp.id);
+    } else if (gps.length > 0) {
+      // If we have GPs but none selected yet, we're still waiting for the initial selection
+    } else {
+      // No GPs at all, stop loading
+      setIsFetchingPredictions(false);
     }
-  }, [selectedGp, user?.team_id]);
+  }, [selectedGp, user?.team_id, gps.length]);
 
   // Sync form with existing prediction
   useEffect(() => {
@@ -636,6 +656,7 @@ export default function App() {
   }, [predictions, user, selectedGp]);
 
   const fetchPredictions = async (gpId: number) => {
+    setIsFetchingPredictions(true);
     try {
       console.log(`Fetching predictions for GP ${gpId}...`);
       const res = await fetch(`/api/predictions?gpId=${gpId}`);
@@ -646,6 +667,8 @@ export default function App() {
       }
     } catch (e) {
       console.error('fetchPredictions error:', e);
+    } finally {
+      setIsFetchingPredictions(false);
     }
   };
 
@@ -794,23 +817,21 @@ export default function App() {
                 <div className="space-y-2">
                   <label className="text-[10px] uppercase font-black tracking-widest text-white/30 ml-1">Team Name</label>
                   <div className="relative">
-                    <select 
+                    <input 
                       required 
+                      name="username"
+                      autoComplete="username"
+                      list="teams-list"
+                      placeholder="Select or type Team"
                       value={authName} 
-                      onChange={e => setAuthName(e.target.value)} 
-                      className="f1-input appearance-none italic uppercase pr-10"
-                    >
-                      <option value="" className="bg-[#1a1a1e]">Select Team</option>
-                      {teams.length > 0 ? (
-                        teams.map(t => (
-                          <option key={t.id} value={t.name} className="bg-[#1a1a1e]">{t.name}</option>
-                        ))
-                      ) : (
-                        ['CL', 'ML', 'FL'].map(name => (
-                          <option key={name} value={name} className="bg-[#1a1a1e]">{name}</option>
-                        ))
-                      )}
-                    </select>
+                      onChange={e => setAuthName(e.target.value.toUpperCase())} 
+                      className="f1-input italic uppercase pr-10"
+                    />
+                    <datalist id="teams-list">
+                      {teams.map(t => (
+                        <option key={t.id} value={t.name} />
+                      ))}
+                    </datalist>
                     <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 pointer-events-none rotate-90" />
                   </div>
                 </div>
@@ -818,6 +839,8 @@ export default function App() {
                   <label className="text-[10px] uppercase font-black tracking-widest text-white/30 ml-1">Security Key</label>
                   <input 
                     required 
+                    name="password"
+                    autoComplete={authView === 'login' ? 'current-password' : 'new-password'}
                     type="password" 
                     placeholder="••••••••" 
                     value={authPassword} 
@@ -825,6 +848,17 @@ export default function App() {
                     className="f1-input" 
                   />
                 </div>
+              </div>
+
+              <div className="flex items-center gap-2 px-1">
+                <input 
+                  type="checkbox" 
+                  id="rememberMe" 
+                  checked={rememberMe}
+                  onChange={e => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded border-white/10 bg-white/5 text-[#e10600] focus:ring-[#e10600]"
+                />
+                <label htmlFor="rememberMe" className="text-[10px] uppercase font-bold tracking-widest text-white/40 cursor-pointer select-none">Remember Team</label>
               </div>
               
               <button 
@@ -953,40 +987,48 @@ export default function App() {
                     <div className="h-[1px] w-full bg-white/5" />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-                    {['CL', 'ML', 'FL'].map(teamName => {
-                      const pred = predictions.find(p => p.team_name === teamName);
-                      return (
-                        <div key={teamName} className="f1-card p-6 sm:p-8 space-y-6 sm:space-y-8 relative group border-t-4 border-t-transparent hover:border-t-[#e10600]">
-                          <div className="flex items-center justify-between">
-                            <span className="font-black italic text-lg sm:text-xl tracking-tighter uppercase">Team {teamName}</span>
-                            {pred && (
-                              <button 
-                                onClick={() => copyToWhatsApp(pred)}
-                                className="p-2 sm:p-2.5 bg-green-500/10 text-green-500 rounded-xl hover:bg-green-500 hover:text-white transition-all shadow-lg shadow-green-600/5"
-                                title="Share to WhatsApp"
-                              >
-                                <MessageCircle className="w-4 h-4 sm:w-5 h-5" />
-                              </button>
+                    {isFetchingPredictions ? (
+                      [1, 2, 3].map(i => (
+                        <div key={i} className="f1-card p-6 sm:p-8 h-64 flex items-center justify-center">
+                          <Loader2 className="w-8 h-8 animate-spin text-white/10" />
+                        </div>
+                      ))
+                    ) : (
+                      ['CL', 'ML', 'FL'].map(teamName => {
+                        const pred = predictions.find(p => p.team_name === teamName);
+                        return (
+                          <div key={teamName} className="f1-card p-6 sm:p-8 space-y-6 sm:space-y-8 relative group border-t-4 border-t-transparent hover:border-t-[#e10600]">
+                            <div className="flex items-center justify-between">
+                              <span className="font-black italic text-lg sm:text-xl tracking-tighter uppercase">Team {teamName}</span>
+                              {pred && (
+                                <button 
+                                  onClick={() => copyToWhatsApp(pred)}
+                                  className="p-2 sm:p-2.5 bg-green-500/10 text-green-500 rounded-xl hover:bg-green-500 hover:text-white transition-all shadow-lg shadow-green-600/5"
+                                  title="Share to WhatsApp"
+                                >
+                                  <MessageCircle className="w-4 h-4 sm:w-5 h-5" />
+                                </button>
+                              )}
+                            </div>
+                            {pred ? (
+                              <div className="space-y-3 sm:space-y-4">
+                                {[1, 2, 3].map(pos => (
+                                  <div key={pos} className="flex items-center gap-3 sm:gap-4 p-2.5 sm:p-3 bg-white/2 rounded-xl sm:rounded-2xl border border-white/5">
+                                    <span className={`w-7 h-7 sm:w-8 h-8 ${pos === 1 ? 'bg-yellow-500' : pos === 2 ? 'bg-zinc-400' : 'bg-orange-600'} text-black text-[8px] sm:text-[10px] font-black italic rounded-lg flex items-center justify-center shadow-lg`}>{pos}</span>
+                                    <span className="font-black italic uppercase text-xs sm:text-sm tracking-tight">{(pred as any)[`p${pos}`]}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="h-32 sm:h-40 flex flex-col items-center justify-center text-white/5 space-y-3">
+                                <ShieldAlert className="w-8 h-8 sm:w-10 h-10 opacity-10" />
+                                <span className="text-[8px] sm:text-[10px] uppercase font-black tracking-widest italic">No Prediction</span>
+                              </div>
                             )}
                           </div>
-                          {pred ? (
-                            <div className="space-y-3 sm:space-y-4">
-                              {[1, 2, 3].map(pos => (
-                                <div key={pos} className="flex items-center gap-3 sm:gap-4 p-2.5 sm:p-3 bg-white/2 rounded-xl sm:rounded-2xl border border-white/5">
-                                  <span className={`w-7 h-7 sm:w-8 h-8 ${pos === 1 ? 'bg-yellow-500' : pos === 2 ? 'bg-zinc-400' : 'bg-orange-600'} text-black text-[8px] sm:text-[10px] font-black italic rounded-lg flex items-center justify-center shadow-lg`}>{pos}</span>
-                                  <span className="font-black italic uppercase text-xs sm:text-sm tracking-tight">{(pred as any)[`p${pos}`]}</span>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="h-32 sm:h-40 flex flex-col items-center justify-center text-white/5 space-y-3">
-                              <ShieldAlert className="w-8 h-8 sm:w-10 h-10 opacity-10" />
-                              <span className="text-[8px] sm:text-[10px] uppercase font-black tracking-widest italic">No Prediction</span>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                        );
+                      })
+                    )}
                   </div>
                 </section>
               </div>

@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     }
 
     if (isMatch) {
-      const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
       const session = await encrypt({ team_id: team.id, team_name: team.name, expires });
 
       (await cookies()).set("session", session, { 
