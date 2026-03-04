@@ -611,17 +611,37 @@ export default function App() {
 
   useEffect(() => {
     if (selectedGp) {
-      fetch(`/api/predictions?gpId=${selectedGp.id}`)
-        .then(res => res.json())
-        .then(data => setPredictions(data));
+      fetchPredictions(selectedGp.id);
     }
-  }, [selectedGp]);
+  }, [selectedGp, user?.team_id]);
+
+  // Sync form with existing prediction
+  useEffect(() => {
+    if (user && selectedGp && predictions.length > 0) {
+      const myPred = predictions.find(p => p.team_id === user.team_id && p.gp_id === selectedGp.id);
+      if (myPred) {
+        setP1(myPred.p1);
+        setP2(myPred.p2);
+        setP3(myPred.p3);
+      } else {
+        setP1('');
+        setP2('');
+        setP3('');
+      }
+    } else if (!user || !selectedGp) {
+      setP1('');
+      setP2('');
+      setP3('');
+    }
+  }, [predictions, user, selectedGp]);
 
   const fetchPredictions = async (gpId: number) => {
     try {
+      console.log(`Fetching predictions for GP ${gpId}...`);
       const res = await fetch(`/api/predictions?gpId=${gpId}`);
       if (res.ok) {
         const data = await res.json();
+        console.log(`Loaded ${data.length} predictions`);
         setPredictions(data);
       }
     } catch (e) {

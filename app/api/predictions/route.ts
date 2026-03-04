@@ -11,12 +11,15 @@ export async function GET(request: Request) {
   
   if (!gpId) return NextResponse.json({ error: "GP ID required" }, { status: 400 });
 
+  const gpIdNum = parseInt(gpId);
+  if (isNaN(gpIdNum)) return NextResponse.json({ error: "Invalid GP ID" }, { status: 400 });
+
   const predictions = db.prepare(`
     SELECT p.*, t.name as team_name 
     FROM predictions p 
     JOIN teams t ON p.team_id = t.id 
     WHERE p.gp_id = ?
-  `).all(gpId);
+  `).all(gpIdNum);
   return NextResponse.json(predictions);
 }
 
@@ -29,8 +32,15 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { gp_id, team_id, p1, p2, p3 } = body;
     
+    const gpIdNum = parseInt(gp_id);
+    const teamIdNum = parseInt(team_id);
+
+    if (isNaN(gpIdNum) || isNaN(teamIdNum)) {
+      return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });
+    }
+
     // Check deadline
-    const gp = db.prepare("SELECT start_time FROM gps WHERE id = ?").get(gp_id) as { start_time: string };
+    const gp = db.prepare("SELECT start_time FROM gps WHERE id = ?").get(gpIdNum) as { start_time: string };
     if (!gp) return NextResponse.json({ error: "GP not found" }, { status: 404 });
     
     if (new Date() > new Date(gp.start_time)) {
@@ -38,7 +48,7 @@ export async function POST(request: Request) {
     }
 
     // Check attempts
-    const existing = db.prepare("SELECT attempts FROM predictions WHERE gp_id = ? AND team_id = ?").get(gp_id, team_id) as { attempts: number } | undefined;
+    const existing = db.prepare("SELECT attempts FROM predictions WHERE gp_id = ? AND team_id = ?").get(gpIdNum, teamIdNum) as { attempts: number } | undefined;
     if (existing && existing.attempts >= 3) {
       return NextResponse.json({ error: "Maximum attempts (3) reached for this GP" }, { status: 400 });
     }
@@ -52,7 +62,7 @@ export async function POST(request: Request) {
         p3=excluded.p3,
         attempts = predictions.attempts + 1
     `);
-    upsert.run(gp_id, team_id, p1, p2, p3);
+    upsert.run(gpIdNum, teamIdNum, p1, p2, p3);
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("Prediction error:", error);
