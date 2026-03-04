@@ -545,7 +545,7 @@ export default function App() {
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: authName, password: authPassword })
+        body: JSON.stringify({ name: authName.trim(), password: authPassword })
       });
       
       console.log(`${authView} response object:`, res);
@@ -558,15 +558,14 @@ export default function App() {
         
         if (authView === 'login') {
           if (rememberMe) {
-            localStorage.setItem('f1_team_name', authName);
+            localStorage.setItem('f1_team_name', authName.trim());
           } else {
             localStorage.removeItem('f1_team_name');
           }
           const loggedUser = await checkSession();
           console.log('Session check result:', loggedUser);
           if (loggedUser) {
-            setAuthName('');
-            setAuthPassword('');
+            // Don't clear name/password immediately to help browser password managers
             setView('dashboard');
             await fetchData();
           } else {
@@ -808,14 +807,21 @@ export default function App() {
             <div className="flex p-1 bg-white/5 rounded-2xl border border-white/5">
               <button 
                 type="button" 
-                onClick={() => { setAuthView('login'); setAuthName(''); }} 
+                onClick={() => { 
+                  setAuthView('login'); 
+                  const savedName = localStorage.getItem('f1_team_name');
+                  if (savedName) setAuthName(savedName);
+                }} 
                 className={`flex-1 py-2.5 sm:py-3 px-2 sm:px-4 rounded-xl text-[10px] sm:text-xs font-black italic uppercase transition-all ${authView === 'login' ? 'bg-[#e10600] text-white shadow-lg' : 'text-white/40 hover:text-white'}`}
               >
                 Login
               </button>
               <button 
                 type="button" 
-                onClick={() => { setAuthView('register'); setAuthName(''); }} 
+                onClick={() => { 
+                  setAuthView('register'); 
+                  setAuthName(''); 
+                }} 
                 className={`flex-1 py-2.5 sm:py-3 px-2 sm:px-4 rounded-xl text-[10px] sm:text-xs font-black italic uppercase transition-all ${authView === 'register' ? 'bg-[#e10600] text-white shadow-lg' : 'text-white/40 hover:text-white'}`}
               >
                 Register

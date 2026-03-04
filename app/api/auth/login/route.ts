@@ -14,7 +14,8 @@ export async function POST(request: Request) {
   console.log("POST /api/auth/login started");
   try {
     const body = await request.json();
-    const { name, password } = body;
+    const { name: rawName, password } = body;
+    const name = rawName?.trim();
     
     if (!name || !password) {
       return new Response(JSON.stringify({ error: "Nome e password sono obbligatori" }), { 
@@ -24,10 +25,20 @@ export async function POST(request: Request) {
     }
 
     const db = getDb();
-    const team = db.prepare("SELECT * FROM teams WHERE name = ?").get(name) as any;
+    console.log(`Login attempt for team: "${name}"`);
+    const team = db.prepare("SELECT * FROM teams WHERE name = ? COLLATE NOCASE").get(name) as any;
     
-    if (!team || !team.password) {
-      return new Response(JSON.stringify({ error: "Credenziali non valide. Team non trovato o non ancora registrato." }), { 
+    if (!team) {
+      console.log(`Team not found: "${name}"`);
+      return new Response(JSON.stringify({ error: "Credenziali non valide. Team non trovato." }), { 
+        status: 401, 
+        headers: { 'Content-Type': 'application/json' } 
+      });
+    }
+
+    if (!team.password) {
+      console.log(`Team found but not registered: "${name}"`);
+      return new Response(JSON.stringify({ error: "Credenziali non valide. Team non ancora registrato." }), { 
         status: 401, 
         headers: { 'Content-Type': 'application/json' } 
       });

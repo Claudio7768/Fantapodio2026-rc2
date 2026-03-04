@@ -13,7 +13,8 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     console.log("Register body:", body);
-    const { name, password } = body;
+    const { name: rawName, password } = body;
+    const name = rawName?.trim();
     
     if (!name || !password) {
       return new Response(JSON.stringify({ error: "Nome e password sono obbligatori" }), { 
@@ -23,7 +24,7 @@ export async function POST(request: Request) {
     }
 
     const db = getDb();
-    const team = db.prepare("SELECT * FROM teams WHERE name = ?").get(name) as any;
+    const team = db.prepare("SELECT * FROM teams WHERE name = ? COLLATE NOCASE").get(name) as any;
     
     if (!team) {
       return new Response(JSON.stringify({ error: `Team "${name}" non trovato. Scegli tra CL, ML, FL.` }), { 
