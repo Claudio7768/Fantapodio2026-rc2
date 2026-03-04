@@ -4,10 +4,10 @@ import getDb from "@/lib/db";
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const db = getDb();
+  const db = await getDb();
   console.log("Gps request received");
   try {
-    const gps = db.prepare("SELECT * FROM gps").all();
+    const gps = await db.all("SELECT * FROM gps");
     console.log("Found gps:", gps.length);
     return NextResponse.json(gps);
   } catch (error: any) {

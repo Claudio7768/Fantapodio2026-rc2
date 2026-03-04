@@ -24,9 +24,9 @@ export async function POST(request: Request) {
       });
     }
 
-    const db = getDb();
+    const db = await getDb();
     console.log(`Login attempt for team: "${name}"`);
-    const team = db.prepare("SELECT * FROM teams WHERE name = ? COLLATE NOCASE").get(name) as any;
+    const team = await db.get("SELECT * FROM teams WHERE name = ? COLLATE NOCASE", [name]) as any;
     
     if (!team) {
       console.log(`Team not found: "${name}"`);

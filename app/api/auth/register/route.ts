@@ -23,14 +23,14 @@ export async function POST(request: Request) {
       });
     }
 
-    const db = getDb();
-    let team = db.prepare("SELECT * FROM teams WHERE name = ? COLLATE NOCASE").get(name) as any;
+    const db = await getDb();
+    let team = await db.get("SELECT * FROM teams WHERE name = ? COLLATE NOCASE", [name]) as any;
     
     if (!team) {
       // Create the team if it doesn't exist
       console.log(`Creating new team: "${name}"`);
-      db.prepare("INSERT INTO teams (name) VALUES (?)").run(name);
-      team = db.prepare("SELECT * FROM teams WHERE name = ? COLLATE NOCASE").get(name) as any;
+      await db.run("INSERT INTO teams (name) VALUES (?)", [name]);
+      team = await db.get("SELECT * FROM teams WHERE name = ? COLLATE NOCASE", [name]) as any;
     }
     
     if (team.password) {
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const result = db.prepare("UPDATE teams SET password = ? WHERE name = ?").run(hashedPassword, name);
+    const result = await db.run("UPDATE teams SET password = ? WHERE name = ?", [hashedPassword, name]);
 
     if (result.changes === 0) {
       return new Response(JSON.stringify({ error: "Impossibile aggiornare il database" }), { 

@@ -4,19 +4,19 @@ import getDb from "@/lib/db";
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const db = getDb();
+  const db = await getDb();
   console.log("Stats request received");
   try {
-    const teams = db.prepare("SELECT * FROM teams").all() as any[];
-    const gps = db.prepare("SELECT * FROM gps WHERE completed = 1 ORDER BY date ASC").all() as any[];
+    const teams = await db.all("SELECT * FROM teams") as any[];
+    const gps = await db.all("SELECT * FROM gps WHERE completed = 1 ORDER BY date ASC") as any[];
     console.log("Found teams:", teams.length, "Completed gps:", gps.length);
-    const results = db.prepare("SELECT * FROM results").all() as any[];
+    const results = await db.all("SELECT * FROM results") as any[];
     
-    const stats = teams.map(team => {
+    const stats = await Promise.all(teams.map(async (team) => {
       let cumulative = 0;
-      const gpBreakdown = gps.map(gp => {
+      const gpBreakdown = await Promise.all(gps.map(async (gp) => {
         const result = results.find(r => r.gp_id === gp.id);
-        const prediction = db.prepare("SELECT * FROM predictions WHERE gp_id = ? AND team_id = ?").get(gp.id, team.id) as any;
+        const prediction = await db.get("SELECT * FROM predictions WHERE gp_id = ? AND team_id = ?", [gp.id, team.id]) as any;
         
         let points = 0;
         if (result && prediction) {
@@ -58,7 +58,7 @@ export async function GET() {
           points: points,
           cumulative: cumulative
         };
-      });
+      }));
 
       return {
         team_id: team.id,
@@ -66,7 +66,7 @@ export async function GET() {
         total_points: team.total_points,
         gpBreakdown
       };
-    });
+    }));
 
     return NextResponse.json({ gps, stats });
   } catch (error: any) {

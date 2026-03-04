@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { GoogleGenAI, Type } from "@google/genai";
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Trophy, 
@@ -517,6 +518,7 @@ export default function App() {
       
       if (!teamsRes.ok || !gpsRes.ok || !statsRes.ok) {
         console.error('One or more initial data fetches failed');
+        return;
       }
 
       const teamsData = await teamsRes.json();
@@ -741,24 +743,45 @@ export default function App() {
     if (!selectedGp) return;
     setIsFetchingFIA(true);
     try {
-      const res = await fetch('/api/fia-results', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gpName: selectedGp.name })
-      });
-      
-      const data = await res.json();
-      if (res.ok) {
-        setResP1(data.p1 || '');
-        setResP2(data.p2 || '');
-        setResP3(data.p3 || '');
-        setDnfs(data.dnfs?.join(', ') || '');
-        setPenalties(data.penalties?.join(', ') || '');
-        setRimonte(data.rimonte?.join(', ') || '');
-        alert('Risultati recuperati con successo!');
-      } else {
-        throw new Error(data.error);
+      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+      if (!apiKey) {
+        throw new Error("Gemini API Key not configured");
       }
+
+      const ai = new GoogleGenAI({ apiKey });
+      
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: `Find the official FIA results for the 2026 ${selectedGp.name}. 
+        I need the top 3 finishers, any drivers who DNF'd (retired), any drivers who received post-race penalties, 
+        and any drivers who started from 11th or lower on the grid but finished in the top 10.`,
+        config: {
+          tools: [{ googleSearch: {} }],
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              p1: { type: Type.STRING },
+              p2: { type: Type.STRING },
+              p3: { type: Type.STRING },
+              dnfs: { type: Type.ARRAY, items: { type: Type.STRING } },
+              penalties: { type: Type.ARRAY, items: { type: Type.STRING } },
+              rimonte: { type: Type.ARRAY, items: { type: Type.STRING } }
+            },
+            required: ["p1", "p2", "p3", "dnfs", "penalties", "rimonte"]
+          }
+        }
+      });
+
+      const data = JSON.parse(response.text || "{}");
+      
+      setResP1(data.p1 || '');
+      setResP2(data.p2 || '');
+      setResP3(data.p3 || '');
+      setDnfs(data.dnfs?.join(', ') || '');
+      setPenalties(data.penalties?.join(', ') || '');
+      setRimonte(data.rimonte?.join(', ') || '');
+      alert('Risultati recuperati con successo!');
     } catch (error) {
       console.error(error);
       alert('Errore nel recupero dei risultati FIA.');

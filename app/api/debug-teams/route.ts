@@ -5,8 +5,8 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const db = getDb();
-    const teams = db.prepare("SELECT id, name, password IS NOT NULL as registered, password FROM teams").all();
+    const db = await getDb();
+    const teams = await db.all("SELECT id, name, password IS NOT NULL as registered, password FROM teams");
     return NextResponse.json({ 
       teams, 
       cwd: process.cwd(),

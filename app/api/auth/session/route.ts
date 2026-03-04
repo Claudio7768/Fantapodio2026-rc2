@@ -9,8 +9,8 @@ export async function GET() {
   try {
     const session = await getSession();
     if (session) {
-      const db = getDb();
-      const team = db.prepare("SELECT id, name FROM teams WHERE id = ?").get(session.team_id) as any;
+      const db = await getDb();
+      const team = await db.get("SELECT id, name FROM teams WHERE id = ?", [session.team_id]) as any;
       
       if (team) {
         console.log("Session verified for:", team.name);
