@@ -38,7 +38,7 @@ export async function POST(request: Request) {
 
     if (!team.password) {
       console.log(`Team found but not registered: "${name}"`);
-      return new Response(JSON.stringify({ error: "Credenziali non valide. Team non ancora registrato." }), { 
+      return new Response(JSON.stringify({ error: "Team non ancora registrato. Vai alla scheda 'Register' per impostare la tua Security Key." }), { 
         status: 401, 
         headers: { 'Content-Type': 'application/json' } 
       });

@@ -7,7 +7,7 @@ let dbInstance: Database.Database | null = null;
 export function getDb(): Database.Database {
   if (dbInstance) return dbInstance;
 
-  const isVercel = process.env.VERCEL === "1" || process.env.NODE_ENV === "production";
+  const isVercel = process.env.VERCEL === "1";
   let dbPath = path.join(process.cwd(), "fantapodio.db");
   
   if (isVercel) {
@@ -39,7 +39,7 @@ export function getDb(): Database.Database {
     db.exec(`
       CREATE TABLE IF NOT EXISTS teams (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT UNIQUE,
+        name TEXT UNIQUE COLLATE NOCASE,
         password TEXT,
         total_points INTEGER DEFAULT 0
       );

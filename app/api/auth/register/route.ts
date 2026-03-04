@@ -24,17 +24,17 @@ export async function POST(request: Request) {
     }
 
     const db = getDb();
-    const team = db.prepare("SELECT * FROM teams WHERE name = ? COLLATE NOCASE").get(name) as any;
+    let team = db.prepare("SELECT * FROM teams WHERE name = ? COLLATE NOCASE").get(name) as any;
     
     if (!team) {
-      return new Response(JSON.stringify({ error: `Team "${name}" non trovato. Scegli tra CL, ML, FL.` }), { 
-        status: 404, 
-        headers: { 'Content-Type': 'application/json' } 
-      });
+      // Create the team if it doesn't exist
+      console.log(`Creating new team: "${name}"`);
+      db.prepare("INSERT INTO teams (name) VALUES (?)").run(name);
+      team = db.prepare("SELECT * FROM teams WHERE name = ? COLLATE NOCASE").get(name) as any;
     }
     
     if (team.password) {
-      return new Response(JSON.stringify({ error: "Team già registrato. Effettua il login." }), { 
+      return new Response(JSON.stringify({ error: "Team già registrato. Se hai dimenticato la password contatta l'amministratore o usa un altro nome." }), { 
         status: 400, 
         headers: { 'Content-Type': 'application/json' } 
       });
