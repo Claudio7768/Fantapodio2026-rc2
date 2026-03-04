@@ -473,13 +473,16 @@ export default function App() {
   const [rimonte, setRimonte] = useState('');
 
   useEffect(() => {
-    const savedName = localStorage.getItem('f1_team_name');
-    if (savedName) {
-      setAuthName(savedName);
-      setRememberMe(true);
-    }
-    checkSession();
-    fetchData();
+    const init = async () => {
+      const savedName = localStorage.getItem('f1_team_name');
+      if (savedName) {
+        setAuthName(savedName);
+        setRememberMe(true);
+      }
+      await checkSession();
+      await fetchData();
+    };
+    init();
   }, []);
 
   const checkSession = async () => {
@@ -626,34 +629,41 @@ export default function App() {
 
   useEffect(() => {
     if (selectedGp) {
+      // Clear current predictions to show loading state
+      setPredictions([]);
       fetchPredictions(selectedGp.id);
     } else if (gps.length > 0) {
-      // If we have GPs but none selected yet, we're still waiting for the initial selection
+      // Waiting for initial selection
     } else {
-      // No GPs at all, stop loading
       setIsFetchingPredictions(false);
     }
   }, [selectedGp, user?.team_id, gps.length]);
 
   // Sync form with existing prediction
   useEffect(() => {
-    if (user && selectedGp && predictions.length > 0) {
+    if (user && selectedGp) {
       const myPred = predictions.find(p => p.team_id === user.team_id && p.gp_id === selectedGp.id);
       if (myPred) {
+        console.log('Syncing form with found prediction:', myPred);
         setP1(myPred.p1);
         setP2(myPred.p2);
         setP3(myPred.p3);
       } else {
-        setP1('');
-        setP2('');
-        setP3('');
+        // Only clear if we are NOT currently fetching
+        if (!isFetchingPredictions) {
+          console.log('No prediction found for user, clearing form');
+          setP1('');
+          setP2('');
+          setP3('');
+        }
       }
-    } else if (!user || !selectedGp) {
+    } else {
+      // No user or no GP selected, clear form
       setP1('');
       setP2('');
       setP3('');
     }
-  }, [predictions, user, selectedGp]);
+  }, [predictions, user, selectedGp, isFetchingPredictions]);
 
   const fetchPredictions = async (gpId: number) => {
     setIsFetchingPredictions(true);
