@@ -462,6 +462,8 @@ export default function App() {
   const [authPassword, setAuthPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   
+  const [needsSync, setNeedsSync] = useState(false);
+  
   const [p1, setP1] = useState('');
   const [p2, setP2] = useState('');
   const [p3, setP3] = useState('');
@@ -641,18 +643,18 @@ export default function App() {
     if (selectedGp) {
       // Clear current predictions to show loading state
       setPredictions([]);
+      setNeedsSync(true);
       fetchPredictions(selectedGp.id);
     } else if (gps.length > 0) {
       // Waiting for initial selection
     } else {
       setIsFetchingPredictions(false);
     }
-  }, [selectedGp, user?.team_id, gps.length]);
+  }, [selectedGp?.id, user?.team_id, gps.length]);
 
-  // Sync form with existing prediction
+  // Sync form with existing prediction ONLY when needed (e.g. GP change)
   useEffect(() => {
-    // Only sync if we have all necessary data and are NOT currently fetching
-    if (!isFetchingPredictions && user && selectedGp) {
+    if (needsSync && !isFetchingPredictions && user && selectedGp) {
       const myPred = predictions.find(p => p.team_id === user.team_id && p.gp_id === selectedGp.id);
       if (myPred) {
         console.log('Syncing form with found prediction:', myPred);
@@ -660,18 +662,14 @@ export default function App() {
         setP2(myPred.p2);
         setP3(myPred.p3);
       } else {
-        console.log('No prediction found for user in current predictions list, clearing form');
+        console.log('No prediction found for user, clearing form');
         setP1('');
         setP2('');
         setP3('');
       }
-    } else if (!user && !isFetchingPredictions) {
-      // If definitely no user and not loading, clear form
-      setP1('');
-      setP2('');
-      setP3('');
+      setNeedsSync(false);
     }
-  }, [predictions, user, selectedGp, isFetchingPredictions]);
+  }, [predictions, isFetchingPredictions, needsSync, user, selectedGp]);
 
   const fetchPredictions = async (gpId: number) => {
     setIsFetchingPredictions(true);
@@ -709,9 +707,7 @@ export default function App() {
       if (res.ok) {
         await fetchPredictions(selectedGp.id);
         await fetchData();
-        setP1(''); setP2(''); setP3('');
-        // Visual feedback could be improved beyond alert, but alert is a start.
-        // Let's add a temporary success message state if needed, but for now alert is functional.
+        // Removed manual setP1('') etc. to keep the saved values in the form
         alert('Pronostico salvato con successo! 🏎️');
       } else {
         const err = await res.json();
