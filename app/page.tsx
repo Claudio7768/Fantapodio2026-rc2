@@ -478,8 +478,10 @@ export default function App() {
   useEffect(() => {
     const init = async () => {
       const savedName = localStorage.getItem('f1_team_name');
+      const savedPass = localStorage.getItem('f1_team_pass');
       if (savedName) {
         setAuthName(savedName);
+        if (savedPass) setAuthPassword(savedPass);
         setRememberMe(true);
       }
       await checkSession();
@@ -575,8 +577,10 @@ export default function App() {
         if (authView === 'login') {
           if (rememberMe) {
             localStorage.setItem('f1_team_name', authName.trim());
+            localStorage.setItem('f1_team_pass', authPassword);
           } else {
             localStorage.removeItem('f1_team_name');
+            localStorage.removeItem('f1_team_pass');
           }
           const loggedUser = await checkSession();
           console.log('Session check result:', loggedUser);
@@ -627,10 +631,11 @@ export default function App() {
       await fetch('/api/auth/logout');
       setUser(null);
       setAuthView('login');
-      // Keep the team name if it was remembered
+      // Keep the team name and password if it was remembered
       const savedName = localStorage.getItem('f1_team_name');
+      const savedPass = localStorage.getItem('f1_team_pass');
       setAuthName(savedName || '');
-      setAuthPassword('');
+      setAuthPassword(savedPass || '');
       setView('dashboard');
     } catch (error) {
       console.error('Logout error:', error);
@@ -641,8 +646,8 @@ export default function App() {
 
   useEffect(() => {
     if (selectedGp) {
-      // Clear current predictions to show loading state
-      setPredictions([]);
+      // Don't clear predictions immediately to avoid "resetting" look
+      // but set flag to sync form once new data arrives
       setNeedsSync(true);
       fetchPredictions(selectedGp.id);
     } else if (gps.length > 0) {
@@ -662,6 +667,7 @@ export default function App() {
         setP2(myPred.p2);
         setP3(myPred.p3);
       } else {
+        // Only clear if we are sure there's no prediction and it's a fresh GP/User change
         console.log('No prediction found for user, clearing form');
         setP1('');
         setP2('');
@@ -669,7 +675,7 @@ export default function App() {
       }
       setNeedsSync(false);
     }
-  }, [predictions, isFetchingPredictions, needsSync, user, selectedGp]);
+  }, [predictions, isFetchingPredictions, needsSync, user?.team_id, selectedGp?.id]);
 
   const fetchPredictions = async (gpId: number) => {
     setIsFetchingPredictions(true);
@@ -1153,7 +1159,10 @@ export default function App() {
                             required
                             className="f1-input appearance-none pr-12 italic uppercase"
                             value={pos === 1 ? p1 : pos === 2 ? p2 : p3}
-                            onChange={(e) => pos === 1 ? setP1(e.target.value) : pos === 2 ? setP2(e.target.value) : setP3(e.target.value)}
+                            onChange={(e) => {
+                              setNeedsSync(false); // Stop syncing if user starts typing
+                              pos === 1 ? setP1(e.target.value) : pos === 2 ? setP2(e.target.value) : setP3(e.target.value);
+                            }}
                           >
                             <option value="" className="bg-[#1a1a1e]">Seleziona Pilota</option>
                             {DRIVERS.filter(d => {
