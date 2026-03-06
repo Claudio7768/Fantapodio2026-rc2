@@ -305,4 +305,3 @@ export async function getLeaderboard(
     })
     .sort((a, b) => b.score - a.score);
 }
-
