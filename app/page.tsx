@@ -509,22 +509,23 @@ export default function App() {
 
   const fetchData = async () => {
     try {
-      console.log('Fetching initial data...');
+      console.log('Fetching data...');
+      const t = Date.now();
       const [teamsRes, gpsRes, statsRes] = await Promise.all([
-        fetch('/api/teams'),
-        fetch('/api/gps'),
-        fetch('/api/stats/season')
+        fetch(`/api/teams?t=${t}`),
+        fetch(`/api/gps?t=${t}`),
+        fetch(`/api/stats/season?t=${t}`)
       ]);
       
       if (!teamsRes.ok || !gpsRes.ok || !statsRes.ok) {
-        console.error('One or more initial data fetches failed');
+        console.error('One or more data fetches failed');
         return;
       }
 
       const teamsData = await teamsRes.json();
       const gpsData = await gpsRes.json();
       const statsData = await statsRes.json();
-      console.log('Teams loaded:', teamsData.length);
+      
       setTeams(teamsData);
       setGps(gpsData);
       setSeasonStats(statsData);
@@ -537,6 +538,17 @@ export default function App() {
       setIsFetchingPredictions(false);
     }
   };
+
+  // Polling for updates every 10 seconds to keep browsers in sync
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchData();
+      if (selectedGp) {
+        fetchPredictions(selectedGp.id);
+      }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [selectedGp]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -664,11 +676,11 @@ export default function App() {
   const fetchPredictions = async (gpId: number) => {
     setIsFetchingPredictions(true);
     try {
+      const t = Date.now();
       console.log(`Fetching predictions for GP ${gpId}...`);
-      const res = await fetch(`/api/predictions?gpId=${gpId}`);
+      const res = await fetch(`/api/predictions?gpId=${gpId}&t=${t}`);
       if (res.ok) {
         const data = await res.json();
-        console.log(`Loaded ${data.length} predictions`);
         setPredictions(data);
       }
     } catch (e) {
