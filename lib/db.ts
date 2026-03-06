@@ -1,9 +1,52 @@
 import { sql } from '@vercel/postgres';
+import { put, head } from "@vercel/blob";
 import Database from "better-sqlite3";
 import path from "path";
 import fs from "fs";
 
 let sqliteDb: Database.Database | null = null;
+let lastBlobSync = 0;
+const BLOB_SYNC_INTERVAL = 60000; // 1 minute
+const DB_FILENAME = "fantapodio.db";
+
+async function syncFromBlob(tmpPath: string) {
+  const token = process.env.FANTAPODIO2026_READ_WRITE_TOKEN;
+  if (!token) return false;
+
+  try {
+    console.log("Checking for DB in Vercel Blob...");
+    const blobHead = await head(DB_FILENAME, { token });
+    if (blobHead) {
+      console.log("Found DB in Blob, downloading...");
+      const response = await fetch(blobHead.url);
+      const buffer = await response.arrayBuffer();
+      fs.writeFileSync(tmpPath, Buffer.from(buffer));
+      console.log("DB synced from Blob successfully");
+      return true;
+    }
+  } catch (e) {
+    console.log("No DB found in Blob or error syncing:", e);
+  }
+  return false;
+}
+
+async function syncToBlob(tmpPath: string) {
+  const token = process.env.FANTAPODIO2026_READ_WRITE_TOKEN;
+  if (!token) return;
+
+  try {
+    const fileBuffer = fs.readFileSync(tmpPath);
+    await put(DB_FILENAME, fileBuffer, {
+      access: 'private',
+      addRandomSuffix: false,
+      token
+    });
+    console.log("DB synced TO Blob successfully");
+    lastBlobSync = Date.now();
+  } catch (e) {
+    console.error("Error syncing DB to Blob:", e);
+  }
+}
 
 export async function getDb() {
   const isPostgres = !!process.env.POSTGRES_URL;
@@ -114,7 +157,13 @@ export async function getDb() {
       run: async (text: string, params: any[] = []) => {
         let i = 1;
         // Postgres uses EXCLUDED.col instead of excluded.col in ON CONFLICT DO UPDATE
-        const pgText = text.replace(/\?/g, () => `$${i++}`).replace(/COLLATE NOCASE/g, '').replace(/excluded\./g, 'EXCLUDED.');
+        // Also handle table name prefix in SET clause for Postgres
+        const pgText = text
+          .replace(/\?/g, () => `$${i++}`)
+          .replace(/COLLATE NOCASE/g, '')
+          .replace(/excluded\./g, 'EXCLUDED.')
+          .replace(/predictions\.attempts/g, 'attempts'); // Postgres SET clause doesn't like table prefix for the target column
+        
         const result = await sql.query(pgText, params);
         return { changes: result.rowCount };
       }
@@ -122,14 +171,16 @@ export async function getDb() {
   } else {
     // SQLite logic
     if (!sqliteDb) {
-      let dbPath = path.join(process.cwd(), "fantapodio.db");
+      let dbPath = path.join(process.cwd(), DB_FILENAME);
       const isVercel = process.env.VERCEL === "1";
       if (isVercel) {
-        const tmpPath = path.join("/tmp", "fantapodio.db");
+        const tmpPath = path.join("/tmp", DB_FILENAME);
         if (!fs.existsSync(tmpPath)) {
-          try {
-            if (fs.existsSync(dbPath)) fs.copyFileSync(dbPath, tmpPath);
-          } catch (err) {}
+          // Try to sync from Vercel Blob first
+          const synced = await syncFromBlob(tmpPath);
+          if (!synced && fs.existsSync(dbPath)) {
+            fs.copyFileSync(dbPath, tmpPath);
+          }
         }
         dbPath = tmpPath;
       }
@@ -221,7 +272,20 @@ export async function getDb() {
         return sqliteDb!.prepare(text).all(...params);
       },
       run: async (text: string, params: any[] = []) => {
-        return sqliteDb!.prepare(text).run(...params);
+        const result = sqliteDb!.prepare(text).run(...params);
+        
+        // If it's a write operation and we're on Vercel, sync to Blob
+        const isVercel = process.env.VERCEL === "1";
+        const isWrite = !text.trim().toUpperCase().startsWith('SELECT');
+        if (isVercel && isWrite) {
+          const tmpPath = path.join("/tmp", DB_FILENAME);
+          // Debounce sync to avoid too many requests
+          if (Date.now() - lastBlobSync > 5000) {
+            syncToBlob(tmpPath);
+          }
+        }
+        
+        return result;
       }
     };
   }

@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     const db = await getDb();
+    console.log(`Register attempt for team: "${name}" in DB type: ${db.type}`);
     let team = await db.get("SELECT * FROM teams WHERE name = ? COLLATE NOCASE", [name]) as any;
     
     if (!team) {

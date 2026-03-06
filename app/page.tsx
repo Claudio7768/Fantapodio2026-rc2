@@ -461,6 +461,7 @@ export default function App() {
   const [authName, setAuthName] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [appStatus, setAppStatus] = useState<{isPersistent: boolean, dbType: string} | null>(null);
   
   const [needsSync, setNeedsSync] = useState(false);
   
@@ -486,6 +487,10 @@ export default function App() {
       }
       await checkSession();
       await fetchData();
+      try {
+        const statusRes = await fetch('/api/status');
+        if (statusRes.ok) setAppStatus(await statusRes.json());
+      } catch (e) {}
     };
     init();
   }, []);
@@ -869,6 +874,14 @@ export default function App() {
           </div>
           
           <div className="f1-card p-6 sm:p-10 space-y-8 sm:space-y-10">
+            {appStatus && !appStatus.isPersistent && (
+              <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl">
+                <p className="text-[10px] font-black text-amber-500 uppercase tracking-[0.2em] flex items-center gap-2 leading-tight">
+                  <ShieldAlert className="w-4 h-4 shrink-0" />
+                  <span>Warning: Non-persistent database (SQLite on Vercel). Data will be lost. Use Vercel Postgres.</span>
+                </p>
+              </div>
+            )}
             <div className="flex p-1 bg-white/5 rounded-2xl border border-white/5">
               <button 
                 type="button" 
@@ -973,6 +986,15 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#0f0f12] text-white font-sans selection:bg-[#e10600] selection:text-white pb-20">
       <Header user={user} onLogout={handleLogout} />
+
+      {appStatus && !appStatus.isPersistent && (
+        <div className="bg-amber-500/10 border-b border-amber-500/20 p-2 text-center">
+          <p className="text-[10px] font-black text-amber-500 uppercase tracking-[0.2em] flex items-center justify-center gap-2 leading-tight">
+            <ShieldAlert className="w-3 h-3 shrink-0" />
+            <span>Warning: Non-persistent database (SQLite on Vercel). Data will be lost. Use Vercel Postgres.</span>
+          </p>
+        </div>
+      )}
 
       <main className="max-w-7xl mx-auto px-4 py-6 sm:py-12 space-y-8 sm:space-y-12">
         <div className="flex justify-center overflow-x-auto pb-4 sm:pb-0 scrollbar-hide">

@@ -25,12 +25,12 @@ export async function POST(request: NextRequest) {
     }
 
     const db = await getDb();
-    console.log(`Login attempt for team: "${name}"`);
+    console.log(`Login attempt for team: "${name}" in DB type: ${db.type}`);
     const team = await db.get("SELECT * FROM teams WHERE name = ? COLLATE NOCASE", [name]) as any;
     
     if (!team) {
-      console.log(`Team not found: "${name}"`);
-      return new Response(JSON.stringify({ error: "Credenziali non valide. Team non trovato." }), { 
+      console.log(`Team not found: "${name}" in DB type: ${db.type}`);
+      return new Response(JSON.stringify({ error: "Credenziali non valide. Team non trovato. Assicurati di esserti registrato su questo dispositivo/ambiente." }), { 
         status: 401, 
         headers: { 'Content-Type': 'application/json' } 
       });
