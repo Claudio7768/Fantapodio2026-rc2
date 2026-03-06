@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import getDb from "@/lib/db";
 import { hashSync } from "bcryptjs";
 
@@ -8,7 +8,7 @@ export async function GET() {
   return NextResponse.json({ status: "ok", service: "register" });
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   console.log("POST /api/auth/register started");
   try {
     const body = await request.json();
@@ -67,12 +67,11 @@ export async function POST(request: Request) {
     });
   } catch (error: any) {
     console.error("Register catch block:", error);
-    const errObj = {
+    return new Response(JSON.stringify({
       error: "Errore interno del server",
       message: error?.message || String(error),
       type: typeof error
-    };
-    return new Response(JSON.stringify(errObj), { 
+    }), { 
       status: 500, 
       headers: { 'Content-Type': 'application/json' } 
     });

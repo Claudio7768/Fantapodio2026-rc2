@@ -14,34 +14,20 @@ export async function GET() {
       
       if (team) {
         console.log("Session verified for:", team.name);
-        return new Response(JSON.stringify({
+        return NextResponse.json({
           ...session,
           team_name: team.name // Ensure name is up to date
-        }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' }
         });
       } else {
         console.log("Session team no longer exists in DB, invalidating");
-        // We don't have an easy way to clear the cookie from here without NextResponse
-        // but returning 401 will make the client clear its state
-        return new Response(JSON.stringify({ error: "Session invalid" }), {
-          status: 401,
-          headers: { 'Content-Type': 'application/json' }
-        });
+        return NextResponse.json({ error: "Session invalid" }, { status: 401 });
       }
     } else {
       console.log("No session found");
-      return new Response(JSON.stringify({ error: "Not authenticated" }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
   } catch (e: any) {
     console.error("Session route error:", e);
-    return new Response(JSON.stringify({ error: e.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }

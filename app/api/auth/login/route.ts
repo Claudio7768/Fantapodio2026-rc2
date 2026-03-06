@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import getDb from "@/lib/db";
 import { compareSync } from "bcryptjs";
 import { encrypt } from "@/lib/session";
@@ -10,7 +10,7 @@ export async function GET() {
   return NextResponse.json({ status: "ok", service: "login" });
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   console.log("POST /api/auth/login started");
   try {
     const body = await request.json();
@@ -79,12 +79,11 @@ export async function POST(request: Request) {
     }
   } catch (error: any) {
     console.error("Login catch block:", error);
-    const errObj = {
+    return new Response(JSON.stringify({
       error: "Errore interno del server",
       message: error?.message || String(error),
       type: typeof error
-    };
-    return new Response(JSON.stringify(errObj), { 
+    }), { 
       status: 500, 
       headers: { 'Content-Type': 'application/json' } 
     });

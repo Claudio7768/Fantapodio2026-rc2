@@ -460,7 +460,7 @@ export default function App() {
   const [authView, setAuthView] = useState<'login' | 'register'>('login');
   const [authName, setAuthName] = useState('');
   const [authPassword, setAuthPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(true);
+  const [rememberMe, setRememberMe] = useState(false);
   
   const [p1, setP1] = useState('');
   const [p2, setP2] = useState('');
@@ -588,16 +588,13 @@ export default function App() {
             try {
               const err = JSON.parse(rawText);
               console.error(`${authView} failed (parsed JSON):`, err);
-              errorMessage = err.error || err.message || (Object.keys(err).length > 0 ? JSON.stringify(err) : `Server error (empty JSON) - Status: ${res.status}`);
+              errorMessage = err.error || err.message || (Object.keys(err).length > 0 ? JSON.stringify(err) : `Server error (Status: ${res.status} ${res.statusText})`);
             } catch (parseError) {
               console.error(`${authView} failed to parse error as JSON:`, parseError);
-              errorMessage = `Server Error: ${rawText.substring(0, 100)}${rawText.length > 100 ? '...' : ''} (Status: ${res.status})`;
+              errorMessage = `Server Error: ${rawText.substring(0, 100)}${rawText.length > 100 ? '...' : ''} (Status: ${res.status} ${res.statusText})`;
             }
           } else {
             errorMessage = `Server responded with status ${res.status}: ${res.statusText}`;
-            if (res.status === 405) {
-              errorMessage = "Errore 405: Metodo non consentito. Le rotte API potrebbero essere state generate come statiche. Riprova tra qualche minuto o contatta l'amministratore.";
-            }
           }
         } catch (e) {
           console.error(`${authView} failed to read response text:`, e);
@@ -737,6 +734,39 @@ export default function App() {
     fetchData();
     setView('dashboard');
     alert('Risultati salvati e punteggi aggiornati!');
+  };
+
+  const handleResetApp = async () => {
+    const password = prompt("Inserisci la password per resettare l'app (FANTAPODIO2026):");
+    if (!password) return;
+
+    if (confirm("Sei sicuro di voler resettare l'app allo stato iniziale? Tutti i pronostici e i risultati verranno eliminati.")) {
+      try {
+        const res = await fetch('/api/reset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+
+        if (res.ok) {
+          await fetch('/api/auth/logout', { method: 'POST' });
+          localStorage.removeItem('f1_team_name');
+          setUser(null);
+          setAuthView('register');
+          setAuthName('');
+          setAuthPassword('');
+          setRememberMe(false);
+          await fetchData();
+          alert('App resettata con successo! I team dovranno registrarsi nuovamente.');
+        } else {
+          const err = await res.json();
+          alert(`Errore nel reset: ${err.error}`);
+        }
+      } catch (error: any) {
+        console.error('handleResetApp error:', error);
+        alert(`Errore di connessione: ${error.message}`);
+      }
+    }
   };
 
   const fetchFIAResults = async () => {
@@ -1117,7 +1147,7 @@ export default function App() {
                             value={pos === 1 ? p1 : pos === 2 ? p2 : p3}
                             onChange={(e) => pos === 1 ? setP1(e.target.value) : pos === 2 ? setP2(e.target.value) : setP3(e.target.value)}
                           >
-                            <option value="" className="bg-[#1a1a1e]">Select Driver</option>
+                            <option value="" className="bg-[#1a1a1e]">Seleziona Pilota</option>
                             {DRIVERS.filter(d => {
                               if (pos === 1) return d.name !== p2 && d.name !== p3;
                               if (pos === 2) return d.name !== p1 && d.name !== p3;
@@ -1197,6 +1227,16 @@ export default function App() {
                   </button>
                 </div>
 
+                <div className="flex justify-end">
+                  <button 
+                    type="button"
+                    onClick={handleResetApp}
+                    className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#e10600] hover:text-white transition-colors"
+                  >
+                    <AlertCircle className="w-4 h-4" /> Reset App
+                  </button>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   {[1, 2, 3].map(pos => (
                     <div key={pos} className="space-y-3">
@@ -1207,8 +1247,14 @@ export default function App() {
                         value={pos === 1 ? resP1 : pos === 2 ? resP2 : resP3}
                         onChange={(e) => pos === 1 ? setResP1(e.target.value) : pos === 2 ? setResP2(e.target.value) : setResP3(e.target.value)}
                       >
-                        <option value="" className="bg-[#1a1a1e]">Driver</option>
-                        {DRIVERS.map(d => <option key={d.number} value={d.name} className="bg-[#1a1a1e]">{d.name}</option>)}
+                        <option value="" className="bg-[#1a1a1e]">Seleziona Pilota</option>
+                        {DRIVERS.filter(d => {
+                          if (pos === 1) return d.name !== resP2 && d.name !== resP3;
+                          if (pos === 2) return d.name !== resP1 && d.name !== resP3;
+                          return d.name !== resP1 && d.name !== resP2;
+                        }).map(d => (
+                          <option key={d.number} value={d.name} className="bg-[#1a1a1e]">{d.number} - {d.name} ({d.team})</option>
+                        ))}
                       </select>
                     </div>
                   ))}
