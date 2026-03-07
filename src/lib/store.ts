@@ -14,6 +14,8 @@ INITIAL_GPS.forEach(g => {
   GP_META[g.id] = { start_time: g.start_time, location: g.location };
 });
 
+const VALID_GP_IDS = new Set(INITIAL_GPS.map(g => g.id));
+
 function enrichGP(row: any): GP {
   const meta = GP_META[row.id] || { start_time: `${row.date}T13:00:00Z`, location: row.circuit || '' };
   return {
@@ -36,15 +38,25 @@ export async function getTeams(): Promise<Team[]> {
 
 // ── GPs ───────────────────────────────────────────────────────
 export async function getGPs(): Promise<GP[]> {
-  // Upsert sempre i GP da INITIAL_GPS per garantire dati corretti
+  // 1. Elimina vecchi GP con ID non validi (es. numerici dalla migrazione precedente)
+  const { data: existing } = await supabase.from('gps').select('id');
+  if (existing) {
+    const oldIds = existing.map((r: any) => String(r.id)).filter((id: string) => !VALID_GP_IDS.has(id));
+    if (oldIds.length > 0) {
+      await supabase.from('gps').delete().in('id', oldIds);
+    }
+  }
+
+  // 2. Inserisce i GP corretti se non esistono (ignoraDuplicates = preserva completed)
   await supabase.from('gps').upsert(
-    INITIAL_GPS.map(g => ({ id: g.id, name: g.name, date: g.date, circuit: g.location, completed: g.completed })),
-    { onConflict: 'id', ignoreDuplicates: false }
+    INITIAL_GPS.map(g => ({ id: g.id, name: g.name, date: g.date, circuit: g.location })),
+    { onConflict: 'id', ignoreDuplicates: true }
   );
 
+  // 3. Leggi da Supabase (solo ID validi)
   const { data, error } = await supabase.from('gps').select('*').order('date');
   if (error || !data || data.length === 0) return INITIAL_GPS;
-  return data.map(enrichGP);
+  return data.filter((r: any) => VALID_GP_IDS.has(String(r.id))).map(enrichGP);
 }
 
 // ── Predictions ───────────────────────────────────────────────
@@ -53,7 +65,7 @@ export async function getPredictions(): Promise<Prediction[]> {
   if (error) return [];
   return (data || []).map((p: any) => ({
     ...p,
-    team_name: p.team_id, // CL / ML / FL usato come display name
+    team_name: p.team_id,
   })) as Prediction[];
 }
 
@@ -135,7 +147,6 @@ export async function submitPrediction(
 
   if (error) return { success: false, error: 'Errore nel salvare il pronostico.' };
 
-  // Traccia attempts in localStorage
   const key = `fp_attempts_${gpId}_${teamId}`;
   const prev = parseInt(localStorage.getItem(key) || '0', 10);
   localStorage.setItem(key, String(prev + 1));
@@ -228,11 +239,10 @@ export async function resetApp(password: string): Promise<boolean> {
   await supabase.from('results').delete().neq('id', '00000000-0000-0000-0000-000000000000');
   await supabase.from('users').delete().neq('id', '00000000-0000-0000-0000-000000000000');
   await supabase.from('gps').update({ completed: false }).neq('id', '');
-  // Pulisci attempts locali
   Object.keys(localStorage).filter(k => k.startsWith('fp_attempts_')).forEach(k => localStorage.removeItem(k));
   return true;
 }
 
-// saveTeams / saveGPs — no-op: Supabase è la fonte di verità
+// no-op: Supabase è la fonte di verità
 export async function saveTeams(_teams: Team[]) {}
 export async function saveGPs(_gps: GP[]) {}
