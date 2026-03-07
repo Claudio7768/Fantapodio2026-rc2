@@ -32,6 +32,8 @@ export default function Index() {
   const [user, setUser] = useState<{ team_id: string; team_name: string } | null>(null);
   const [isPredicting, setIsPredicting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [adminUnlocked, setAdminUnlocked] = useState(false);
+  const [adminPw, setAdminPw] = useState('');
 
   const [p1, setP1] = useState('');
   const [p2, setP2] = useState('');
@@ -414,62 +416,105 @@ export default function Index() {
           {/* ── ADMIN ── */}
           {view === 'admin' && (
             <motion.div key="admin" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="max-w-3xl mx-auto">
-              <form onSubmit={handleSaveResult} className="f1-card p-6 sm:p-12 space-y-8 sm:space-y-12">
-                <div className="flex flex-col sm:flex-row items-start justify-between gap-6">
+              {!adminUnlocked ? (
+                /* Password gate */
+                <div className="f1-card p-12 sm:p-16 flex flex-col items-center gap-8 text-center">
+                  <div className="w-20 h-20 bg-primary/10 border border-primary/20 rounded-3xl flex items-center justify-center shadow-2xl">
+                    <ShieldAlert className="w-10 h-10 text-primary" />
+                  </div>
                   <div className="space-y-2">
-                    <h2 className="text-2xl sm:text-4xl font-black italic uppercase tracking-tighter flex items-center gap-3 sm:gap-4">
-                      <ShieldAlert className="w-8 h-8 sm:w-10 sm:h-10 text-primary" /> Race Control
-                    </h2>
-                    <p className="text-white/20 text-[8px] sm:text-[10px] uppercase tracking-[0.3em] font-bold">Official Classification: {selectedGp?.name}</p>
+                    <h2 className="text-3xl font-black italic uppercase tracking-tighter">Race Control</h2>
+                    <p className="text-white/20 text-[10px] uppercase tracking-[0.3em] font-bold">Accesso riservato</p>
                   </div>
+                  <form
+                    onSubmit={e => {
+                      e.preventDefault();
+                      if (adminPw === 'FANTAPODIO2026') {
+                        setAdminUnlocked(true);
+                        setAdminPw('');
+                      } else {
+                        alert('Password errata.');
+                        setAdminPw('');
+                      }
+                    }}
+                    className="w-full max-w-xs space-y-4"
+                  >
+                    <input
+                      required
+                      type="password"
+                      value={adminPw}
+                      onChange={e => setAdminPw(e.target.value)}
+                      placeholder="Password..."
+                      className="f1-input text-center tracking-widest"
+                      autoFocus
+                    />
+                    <button type="submit" className="f1-button w-full py-4">
+                      <CheckCircle2 className="w-5 h-5" /> Unlock
+                    </button>
+                  </form>
                 </div>
-
-                <div className="flex justify-end">
-                  <button type="button" onClick={handleResetApp} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary hover:text-white transition-colors">
-                    <AlertCircle className="w-4 h-4" /> Reset App
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  {[1, 2, 3].map(pos => (
-                    <div key={pos} className="space-y-3">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-white/20">P{pos} Result</label>
-                      <select
-                        required
-                        className="f1-input py-3 italic uppercase appearance-none"
-                        value={pos === 1 ? resP1 : pos === 2 ? resP2 : resP3}
-                        onChange={e => pos === 1 ? setResP1(e.target.value) : pos === 2 ? setResP2(e.target.value) : setResP3(e.target.value)}
-                      >
-                        <option value="" style={{ backgroundColor: '#1a1a1e' }}>Seleziona Pilota</option>
-                        {DRIVERS.filter(d => {
-                          if (pos === 1) return d.name !== resP2 && d.name !== resP3;
-                          if (pos === 2) return d.name !== resP1 && d.name !== resP3;
-                          return d.name !== resP1 && d.name !== resP2;
-                        }).map(d => (
-                          <option key={d.number} value={d.name} style={{ backgroundColor: '#1a1a1e' }}>{d.number} - {d.name} ({d.team})</option>
-                        ))}
-                      </select>
+              ) : (
+                /* Admin form */
+                <form onSubmit={handleSaveResult} className="f1-card p-6 sm:p-12 space-y-8 sm:space-y-12">
+                  <div className="flex flex-col sm:flex-row items-start justify-between gap-6">
+                    <div className="space-y-2">
+                      <h2 className="text-2xl sm:text-4xl font-black italic uppercase tracking-tighter flex items-center gap-3 sm:gap-4">
+                        <ShieldAlert className="w-8 h-8 sm:w-10 sm:h-10 text-primary" /> Race Control
+                      </h2>
+                      <p className="text-white/20 text-[8px] sm:text-[10px] uppercase tracking-[0.3em] font-bold">Official Classification: {selectedGp?.name}</p>
                     </div>
-                  ))}
-                </div>
+                  </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                  <div className="space-y-3">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-white/20">Retirements (DNF)</label>
-                    <input value={dnfs} onChange={e => setDnfs(e.target.value)} placeholder="Verstappen, Hamilton..." className="f1-input" />
+                  <div className="flex justify-end gap-4">
+                    <button type="button" onClick={() => setAdminUnlocked(false)} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/20 hover:text-white transition-colors">
+                      <AlertCircle className="w-4 h-4" /> Lock
+                    </button>
+                    <button type="button" onClick={handleResetApp} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary hover:text-white transition-colors">
+                      <AlertCircle className="w-4 h-4" /> Reset App
+                    </button>
                   </div>
-                  <div className="space-y-3">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-white/20">FIA Penalties</label>
-                    <input value={penalties} onChange={e => setPenalties(e.target.value)} placeholder="Perez, Alonso..." className="f1-input" />
-                  </div>
-                  <div className="md:col-span-2 space-y-3">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-white/20">Rimonte Killer (Started 11th+ → Top 10)</label>
-                    <input value={rimonte} onChange={e => setRimonte(e.target.value)} placeholder="Norris, Bearman..." className="f1-input" />
-                  </div>
-                </div>
 
-                <button type="submit" className="f1-button w-full py-6 text-xl">Publish Official Results</button>
-              </form>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    {[1, 2, 3].map(pos => (
+                      <div key={pos} className="space-y-3">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-white/20">P{pos} Result</label>
+                        <select
+                          required
+                          className="f1-input py-3 italic uppercase appearance-none"
+                          value={pos === 1 ? resP1 : pos === 2 ? resP2 : resP3}
+                          onChange={e => pos === 1 ? setResP1(e.target.value) : pos === 2 ? setResP2(e.target.value) : setResP3(e.target.value)}
+                        >
+                          <option value="" style={{ backgroundColor: '#1a1a1e' }}>Seleziona Pilota</option>
+                          {DRIVERS.filter(d => {
+                            if (pos === 1) return d.name !== resP2 && d.name !== resP3;
+                            if (pos === 2) return d.name !== resP1 && d.name !== resP3;
+                            return d.name !== resP1 && d.name !== resP2;
+                          }).map(d => (
+                            <option key={d.number} value={d.name} style={{ backgroundColor: '#1a1a1e' }}>{d.number} - {d.name} ({d.team})</option>
+                          ))}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-white/20">Retirements (DNF)</label>
+                      <input value={dnfs} onChange={e => setDnfs(e.target.value)} placeholder="Verstappen, Hamilton..." className="f1-input" />
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-white/20">FIA Penalties</label>
+                      <input value={penalties} onChange={e => setPenalties(e.target.value)} placeholder="Perez, Alonso..." className="f1-input" />
+                    </div>
+                    <div className="md:col-span-2 space-y-3">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-white/20">Rimonte Killer (Started 11th+ → Top 10)</label>
+                      <input value={rimonte} onChange={e => setRimonte(e.target.value)} placeholder="Norris, Bearman..." className="f1-input" />
+                    </div>
+                  </div>
+
+                  <button type="submit" className="f1-button w-full py-6 text-xl">Publish Official Results</button>
+                </form>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
