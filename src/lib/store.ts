@@ -47,10 +47,10 @@ export async function getGPs(): Promise<GP[]> {
     }
   }
 
-  // 2. Inserisce i GP corretti se non esistono (ignoraDuplicates = preserva completed)
+  // 2. Forza aggiornamento nomi e date (ma preserva completed se già settato)
   await supabase.from('gps').upsert(
     INITIAL_GPS.map(g => ({ id: g.id, name: g.name, date: g.date, circuit: g.location })),
-    { onConflict: 'id', ignoreDuplicates: true }
+    { onConflict: 'id', ignoreDuplicates: false }
   );
 
   // 3. Leggi da Supabase (solo ID validi)

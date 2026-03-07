@@ -24,6 +24,13 @@ export function LoginScreen({ teams, nextGp, onLogin, onRegister }: LoginScreenP
     setLoading(false);
   };
 
+  // Fallback se i team non sono ancora caricati da Supabase
+  const teamOptions = teams.length > 0 ? teams : [
+    { id: 'CL', name: 'Team CL' },
+    { id: 'ML', name: 'Team ML' },
+    { id: 'FL', name: 'Team FL' },
+  ];
+
   return (
     <div className="flex min-h-svh items-center justify-center bg-background p-4">
       <div className="f1-card w-full max-w-md p-8 sm:p-12 space-y-8">
@@ -35,9 +42,7 @@ export function LoginScreen({ teams, nextGp, onLogin, onRegister }: LoginScreenP
               Fantapodio <span className="text-primary">2026</span>
             </h1>
           </div>
-          <p className="text-white/40 text-xs uppercase tracking-widest font-black">
-            Race Control
-          </p>
+          <p className="text-white/40 text-xs uppercase tracking-widest font-black">Race Control</p>
           {nextGp && (
             <p className="text-[10px] text-white/20 font-bold uppercase tracking-[0.2em] pt-1">
               Next: {nextGp.name}
@@ -50,7 +55,7 @@ export function LoginScreen({ teams, nextGp, onLogin, onRegister }: LoginScreenP
           {(['login', 'register'] as const).map(t => (
             <button
               key={t}
-              onClick={() => setTab(t)}
+              onClick={() => { setTab(t); setName(''); setPw(''); }}
               className={`flex-1 py-3 text-[10px] font-black italic uppercase tracking-widest rounded-xl transition-all ${
                 tab === t ? 'bg-primary text-white shadow-lg' : 'bg-white/5 text-white/30 hover:text-white'
               }`}
@@ -62,32 +67,20 @@ export function LoginScreen({ teams, nextGp, onLogin, onRegister }: LoginScreenP
 
         {/* Form */}
         <form onSubmit={handle} className="space-y-5">
+          {/* Dropdown team — visibile su ENTRAMBI i tab */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">
-              {tab === 'login' ? 'Team Name' : 'Scegli Team'}
-            </label>
-            {tab === 'register' && teams.length > 0 ? (
-              <select
-                required
-                value={name}
-                onChange={e => setName(e.target.value)}
-                className="f1-input italic uppercase appearance-none"
-              >
-                <option value="" style={{ backgroundColor: '#1a1a1e' }}>Seleziona il tuo team</option>
-                {teams.map(t => (
-                  <option key={t.id} value={t.id} style={{ backgroundColor: '#1a1a1e' }}>Team {t.id}</option>
-                ))}
-              </select>
-            ) : (
-              <input
-                required
-                value={name}
-                onChange={e => setName(e.target.value)}
-                placeholder="Team CL / ML / FL"
-                className="f1-input"
-                autoComplete="username"
-              />
-            )}
+            <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Team</label>
+            <select
+              required
+              value={name}
+              onChange={e => setName(e.target.value)}
+              className="f1-input italic uppercase appearance-none"
+            >
+              <option value="" style={{ backgroundColor: '#1a1a1e' }}>Seleziona il tuo team</option>
+              {teamOptions.map(t => (
+                <option key={t.id} value={t.id} style={{ backgroundColor: '#1a1a1e' }}>Team {t.id}</option>
+              ))}
+            </select>
           </div>
 
           <div className="space-y-2">
@@ -103,16 +96,8 @@ export function LoginScreen({ teams, nextGp, onLogin, onRegister }: LoginScreenP
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="f1-button w-full py-4 mt-2"
-          >
-            {loading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <CheckCircle2 className="w-5 h-5" />
-            )}
+          <button type="submit" disabled={loading} className="f1-button w-full py-4 mt-2">
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
             {loading ? 'Loading...' : tab === 'login' ? 'Enter Paddock' : 'Create Team'}
           </button>
         </form>
