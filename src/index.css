@@ -8,37 +8,99 @@
     --foreground: 0 0% 95%;
     --card: 0 0% 6%;
     --card-foreground: 0 0% 95%;
-    --popover: 0 0% 6%;
-    --popover-foreground: 0 0% 95%;
-    --primary: 0 100% 45%;
+    --primary: 1 96% 44%;
     --primary-foreground: 0 0% 100%;
     --secondary: 0 0% 12%;
     --secondary-foreground: 0 0% 95%;
     --muted: 0 0% 12%;
     --muted-foreground: 0 0% 55%;
-    --accent: 0 0% 12%;
-    --accent-foreground: 0 0% 95%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
     --border: 0 0% 14%;
     --input: 0 0% 14%;
-    --ring: 0 100% 45%;
+    --ring: 1 96% 44%;
     --radius: 0.5rem;
   }
 }
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border box-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: hsl(0 0% 3%);
+    color: hsl(0 0% 95%);
   }
 }
 
 @layer components {
   .f1-card {
-    @apply bg-card border border-border rounded-lg shadow-lg;
+    background-color: hsl(0 0% 6%);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 1.5rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+    transition: all 0.3s ease;
+  }
+
+  .f1-input {
+    width: 100%;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #ffffff;
+    outline: none;
+    transition: all 0.2s ease;
+    display: block;
+  }
+
+  .f1-input::placeholder {
+    color: rgba(255, 255, 255, 0.2);
+  }
+
+  .f1-input:focus {
+    border-color: rgba(227, 6, 0, 0.5);
+    background-color: rgba(255, 255, 255, 0.07);
+  }
+
+  .f1-input option {
+    background-color: #1a1a1e;
+    color: #ffffff;
+  }
+
+  .f1-button {
+    background-color: hsl(1 96% 44%);
+    color: #ffffff;
+    font-weight: 900;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.875rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 10px 15px -3px rgba(227, 6, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .f1-button:hover {
+    background-color: hsl(1 96% 38%);
+  }
+
+  .f1-button:active {
+    transform: scale(0.98);
+  }
+
+  .f1-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: grayscale(1);
   }
 }

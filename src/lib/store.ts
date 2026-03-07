@@ -28,28 +28,22 @@ function enrichGP(row: any): GP {
 
 // ── Teams ─────────────────────────────────────────────────────
 export async function getTeams(): Promise<Team[]> {
+  await supabase.from('teams').upsert(INITIAL_TEAMS, { onConflict: 'id' });
   const { data, error } = await supabase.from('teams').select('*').order('id');
-  if (error || !data || data.length === 0) {
-    // Inizializza se vuoto
-    if (!error && (!data || data.length === 0)) {
-      await supabase.from('teams').insert(INITIAL_TEAMS);
-    }
-    return INITIAL_TEAMS;
-  }
+  if (error || !data || data.length === 0) return INITIAL_TEAMS;
   return data as Team[];
 }
 
 // ── GPs ───────────────────────────────────────────────────────
 export async function getGPs(): Promise<GP[]> {
+  // Upsert sempre i GP da INITIAL_GPS per garantire dati corretti
+  await supabase.from('gps').upsert(
+    INITIAL_GPS.map(g => ({ id: g.id, name: g.name, date: g.date, circuit: g.location, completed: g.completed })),
+    { onConflict: 'id', ignoreDuplicates: false }
+  );
+
   const { data, error } = await supabase.from('gps').select('*').order('date');
-  if (error || !data || data.length === 0) {
-    if (!error && (!data || data.length === 0)) {
-      await supabase.from('gps').insert(
-        INITIAL_GPS.map(g => ({ id: g.id, name: g.name, date: g.date, circuit: g.location, completed: g.completed }))
-      );
-    }
-    return INITIAL_GPS;
-  }
+  if (error || !data || data.length === 0) return INITIAL_GPS;
   return data.map(enrichGP);
 }
 
