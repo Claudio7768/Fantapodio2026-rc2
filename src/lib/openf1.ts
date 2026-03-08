@@ -1,44 +1,44 @@
 // ── OpenF1 API helper ─────────────────────────────────────────
 // Docs: https://openf1.org/docs
-// Nessuna API key richiesta. Rate limit: 30 req/min free tier.
+// Endpoint reali: /sessions /drivers /position /laps
+// Nessuna API key. CORS aperto per browser.
 
 const BASE = 'https://api.openf1.org/v1';
 
-// Mappa ID GP Fantapodio → country_name per OpenF1
 const GP_TO_COUNTRY: Record<string, string> = {
   australia:   'Australia',
   china:       'China',
   japan:       'Japan',
   bahrain:     'Bahrain',
   saudi:       'Saudi Arabia',
-  miami:       'United States',   // Miami usa country USA come Austin
+  miami:       'United States',
   canada:      'Canada',
   monaco:      'Monaco',
-  barcelona:   'Spain',           // Barcelona-Catalunya
+  barcelona:   'Spain',
   austria:     'Austria',
   britain:     'United Kingdom',
   belgium:     'Belgium',
   hungary:     'Hungary',
   netherlands: 'Netherlands',
   italy:       'Italy',
-  madrid:      'Spain',           // Madrid — stessa country di Barcelona
+  madrid:      'Spain',
   azerbaijan:  'Azerbaijan',
   singapore:   'Singapore',
   usa:         'United States',
   mexico:      'Mexico',
   brazil:      'Brazil',
-  lasvegas:    'United States',   // Las Vegas
+  lasvegas:    'United States',
   qatar:       'Qatar',
   abudhabi:    'United Arab Emirates',
 };
 
-// Per i GP con stessa country (USA x3, Spagna x2) usiamo meeting_name
-const GP_TO_MEETING_HINT: Record<string, string> = {
-  miami:    'Miami',
-  usa:      'United States',
-  lasvegas: 'Las Vegas',
-  barcelona: 'Spanish',
-  madrid:    'Madrid',
+// Per GP con stessa country, filtriamo per nome meeting
+const GP_MEETING_HINT: Record<string, string> = {
+  miami:     'miami',
+  usa:       'united states',
+  lasvegas:  'las vegas',
+  barcelona: 'spanish',
+  madrid:    'madrid',
 };
 
 export interface OpenF1RaceData {
@@ -46,105 +46,122 @@ export interface OpenF1RaceData {
   p2: string;
   p3: string;
   dnf: string[];
-  rimonta: string[];   // Partiti 11°+ → arrivati top 10
+  rimonta: string[];
 }
 
-// Converte driver_number → last name tramite endpoint /drivers
-async function fetchDriverMap(sessionKey: number): Promise<Record<number, string>> {
-  const res = await fetch(`${BASE}/drivers?session_key=${sessionKey}`);
-  const data: Array<{ driver_number: number; last_name: string; full_name: string }> = await res.json();
-  const map: Record<number, string> = {};
-  data.forEach(d => {
-    // Usa last_name che corrisponde ai nomi in DRIVERS di constants.ts
-    map[d.driver_number] = d.last_name;
+async function apiFetch<T>(path: string): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    headers: { 'Accept': 'application/json' },
   });
-  return map;
+  if (!res.ok) throw new Error(`OpenF1 ${path} → ${res.status}`);
+  return res.json();
 }
 
-// Trova il session_key della Race per un GP
-async function findRaceSessionKey(gpId: string, year = 2026): Promise<number | null> {
+// Trova session_key della Race per un GP
+async function findRaceSession(gpId: string, year = 2026): Promise<number | null> {
   const country = GP_TO_COUNTRY[gpId];
-  if (!country) return null;
+  if (!country) throw new Error(`GP sconosciuto: ${gpId}`);
 
-  const res = await fetch(`${BASE}/sessions?year=${year}&session_name=Race&country_name=${encodeURIComponent(country)}`);
-  const sessions: Array<{ session_key: number; session_name: string; meeting_key: number; location: string; meeting_official_name?: string }> = await res.json();
+  const sessions = await apiFetch<Array<{
+    session_key: number;
+    session_name: string;
+    country_name: string;
+    location: string;
+    meeting_official_name: string;
+    year: number;
+  }>>(`/sessions?year=${year}&session_name=Race&country_name=${encodeURIComponent(country)}`);
 
-  if (!sessions.length) return null;
+  if (!sessions.length) throw new Error(`Nessuna sessione Race trovata per ${country} ${year}`);
 
-  // Se c'è ambiguità (più gare nello stesso paese), filtra per hint
-  const hint = GP_TO_MEETING_HINT[gpId];
+  // Disambigua GP con stessa country (USA x3, Spagna x2)
+  const hint = GP_MEETING_HINT[gpId];
   if (hint && sessions.length > 1) {
     const match = sessions.find(s =>
-      (s.meeting_official_name || s.location || '').toLowerCase().includes(hint.toLowerCase())
+      (s.meeting_official_name + ' ' + s.location).toLowerCase().includes(hint)
     );
     if (match) return match.session_key;
   }
 
-  return sessions[sessions.length - 1].session_key; // ultimo = più recente
+  return sessions[0].session_key;
 }
 
-// Recupera i risultati completi della gara
-export async function fetchRaceResults(gpId: string): Promise<OpenF1RaceData | null> {
-  try {
-    const sessionKey = await findRaceSessionKey(gpId);
-    if (!sessionKey) throw new Error(`Sessione non trovata per GP: ${gpId}`);
+// Mappa driver_number → cognome (matching con DRIVERS in constants.ts)
+async function getDriverMap(sessionKey: number): Promise<Record<number, string>> {
+  const drivers = await apiFetch<Array<{
+    driver_number: number;
+    last_name: string;
+    name_acronym: string;
+  }>>(`/drivers?session_key=${sessionKey}`);
 
-    // 1. Risultati finali
-    const resultRes = await fetch(`${BASE}/session_result?session_key=${sessionKey}`);
-    const results: Array<{
-      driver_number: number;
-      position: number;
-      dnf: boolean;
-      dns: boolean;
-      dsq: boolean;
-    }> = await resultRes.json();
+  const map: Record<number, string> = {};
+  drivers.forEach(d => { map[d.driver_number] = d.last_name; });
+  return map;
+}
 
-    if (!results.length) throw new Error('Nessun risultato disponibile');
+export async function fetchRaceResults(gpId: string): Promise<OpenF1RaceData> {
+  const sessionKey = await findRaceSession(gpId);
+  if (!sessionKey) throw new Error('Sessione non trovata');
 
-    // 2. Posizioni di partenza (griglia) — prendi la prima entry per ogni pilota
-    const posRes = await fetch(`${BASE}/position?session_key=${sessionKey}`);
-    const positions: Array<{ driver_number: number; position: number; date: string }> = await posRes.json();
+  const [driverMap, positions, laps] = await Promise.all([
+    getDriverMap(sessionKey),
+    // Position: entries durante tutta la gara → ultima per ogni pilota = posizione finale
+    apiFetch<Array<{ driver_number: number; position: number; date: string }>>(
+      `/position?session_key=${sessionKey}`
+    ),
+    // Laps: per calcolare giri completati (DNF = molto meno giri del vincitore)
+    apiFetch<Array<{ driver_number: number; lap_number: number; lap_duration: number | null }>>(
+      `/laps?session_key=${sessionKey}`
+    ),
+  ]);
 
-    // Per ogni pilota prendi la posizione più vecchia (= griglia di partenza)
-    const startGrid: Record<number, number> = {};
-    positions.forEach(p => {
-      const existing = startGrid[p.driver_number];
-      if (!existing) {
-        startGrid[p.driver_number] = p.position;
-      }
-    });
+  // ── Posizione finale: ultima entry per ogni pilota ──────────
+  const finalPos: Record<number, number> = {};
+  positions.forEach(p => { finalPos[p.driver_number] = p.position; });
 
-    // 3. Mappa driver_number → last_name
-    const driverMap = await fetchDriverMap(sessionKey);
+  // Ordina per posizione finale crescente
+  const sorted = Object.entries(finalPos)
+    .map(([num, pos]) => ({ num: parseInt(num), pos }))
+    .sort((a, b) => a.pos - b.pos);
 
-    // Ordina per posizione finale
-    const sorted = [...results].sort((a, b) => a.position - b.position);
+  const p1 = driverMap[sorted[0]?.num] || '';
+  const p2 = driverMap[sorted[1]?.num] || '';
+  const p3 = driverMap[sorted[2]?.num] || '';
 
-    // P1, P2, P3
-    const p1 = driverMap[sorted[0]?.driver_number] || '';
-    const p2 = driverMap[sorted[1]?.driver_number] || '';
-    const p3 = driverMap[sorted[2]?.driver_number] || '';
+  // ── Giri completati per pilota ──────────────────────────────
+  const lapsPerDriver: Record<number, number> = {};
+  laps.forEach(l => {
+    lapsPerDriver[l.driver_number] = Math.max(
+      lapsPerDriver[l.driver_number] || 0,
+      l.lap_number
+    );
+  });
 
-    // DNF — tutti con dnf:true o dns:true o dsq:true
-    const dnf = results
-      .filter(r => r.dnf || r.dns || r.dsq)
-      .map(r => driverMap[r.driver_number])
-      .filter(Boolean);
+  const maxLaps = Math.max(...Object.values(lapsPerDriver), 0);
+  // DNF = ha completato meno dell'85% dei giri totali
+  const dnfThreshold = Math.floor(maxLaps * 0.85);
 
-    // Rimonta killer: partiti dalla 11ª posizione in poi, finiti top 10
-    const rimonta = results
-      .filter(r => {
-        const finishPos = r.position;
-        const startPos = startGrid[r.driver_number] || 99;
-        return !r.dnf && !r.dns && finishPos <= 10 && startPos >= 11;
-      })
-      .map(r => driverMap[r.driver_number])
-      .filter(Boolean);
+  const dnf = Object.entries(lapsPerDriver)
+    .filter(([, lapCount]) => lapCount < dnfThreshold)
+    .map(([num]) => driverMap[parseInt(num)])
+    .filter(Boolean);
 
-    return { p1, p2, p3, dnf, rimonta };
+  // ── Posizione di partenza: prima entry position per ogni pilota ─
+  const startPos: Record<number, number> = {};
+  // Le prime entries sono la griglia (ordinate per data)
+  const sortedByDate = [...positions].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+  sortedByDate.forEach(p => {
+    if (!(p.driver_number in startPos)) {
+      startPos[p.driver_number] = p.position;
+    }
+  });
 
-  } catch (err) {
-    console.error('OpenF1 fetch error:', err);
-    return null;
-  }
+  // Rimonta killer: partito 11°+ → finito top 10
+  const rimonta = sorted
+    .filter(({ num, pos }) => pos <= 10 && (startPos[num] || 99) >= 11)
+    .map(({ num }) => driverMap[num])
+    .filter(Boolean);
+
+  return { p1, p2, p3, dnf, rimonta };
 }
