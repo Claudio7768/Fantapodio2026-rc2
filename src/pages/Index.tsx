@@ -20,7 +20,8 @@ import {
   loginTeam, registerTeam, submitPrediction, submitResult,
   getSeasonStats, resetApp,
 } from '@/lib/store';
-import { fetchRaceResults } from '@/lib/openf1';
+import { fetchRaceResults, DriverResult } from '@/lib/openf1';
+import { RaceClassification } from '@/components/RaceClassification';
 
 export default function Index() {
   const [teams, setTeams] = useState<Team[]>([]);
@@ -37,6 +38,7 @@ export default function Index() {
   const [adminPw, setAdminPw] = useState('');
   const [isFetching, setIsFetching] = useState(false);
   const [fetchStatus, setFetchStatus] = useState<'idle'|'ok'|'error'>('idle');
+  const [classification, setClassification] = useState<DriverResult[]>([]);
 
   const [p1, setP1] = useState('');
   const [p2, setP2] = useState('');
@@ -173,6 +175,7 @@ export default function Index() {
       setResP3(data.p3);
       setDnfs(data.dnf.join(', '));
       setRimonte(data.rimonta.join(', '));
+      setClassification(data.classification || []);
       setFetchStatus('ok');
     } else {
       setFetchStatus('error');
@@ -437,6 +440,40 @@ export default function Index() {
           {/* ── ADMIN ── */}
           {view === 'admin' && (
             <motion.div key="admin" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="max-w-3xl mx-auto">
+              <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+                {/* Colonna sinistra: classifica TV */}
+                <div className="space-y-4">
+                  {/* Selettore GP nella colonna sinistra */}
+                  <div className="f1-card p-4 space-y-3">
+                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/20">Grand Prix</p>
+                    <select
+                      className="f1-input text-xs py-2 italic uppercase appearance-none"
+                      value={selectedGp?.id || ''}
+                      onChange={e => {
+                        const gp = gps.find(g => g.id === e.target.value);
+                        if (gp) { setSelectedGp(gp); setFetchStatus('idle'); setClassification([]); }
+                      }}
+                    >
+                      {gps.map(g => (
+                        <option key={g.id} value={g.id} style={{ backgroundColor: '#1a1a1e' }}>
+                          {g.completed ? '✓ ' : ''}{g.name.replace(' Grand Prix', '')}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {classification.length > 0 && selectedGp && (
+                    <RaceClassification classification={classification} gpName={selectedGp.name} />
+                  )}
+                  {classification.length === 0 && (
+                    <div className="f1-card p-6 text-center space-y-2 opacity-30">
+                      <p className="text-[8px] font-black uppercase tracking-widest text-white/30">Nessuna classifica</p>
+                      <p className="text-[7px] text-white/20">Usa Fetch Results per caricare</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Colonna destra: form admin */}
+                <div>
               {!adminUnlocked ? (
                 /* Password gate */
                 <div className="f1-card p-12 sm:p-16 flex flex-col items-center gap-8 text-center">
@@ -564,6 +601,8 @@ export default function Index() {
                   <button type="submit" className="f1-button w-full py-6 text-xl">Publish Official Results</button>
                 </form>
               )}
+                </div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
