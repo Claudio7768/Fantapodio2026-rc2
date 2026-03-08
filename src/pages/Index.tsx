@@ -20,6 +20,7 @@ import {
   loginTeam, registerTeam, submitPrediction, submitResult,
   getSeasonStats, resetApp,
 } from '@/lib/store';
+import { fetchRaceResults } from '@/lib/openf1';
 
 export default function Index() {
   const [teams, setTeams] = useState<Team[]>([]);
@@ -34,6 +35,8 @@ export default function Index() {
   const [isLoading, setIsLoading] = useState(true);
   const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [adminPw, setAdminPw] = useState('');
+  const [isFetching, setIsFetching] = useState(false);
+  const [fetchStatus, setFetchStatus] = useState<'idle'|'ok'|'error'>('idle');
 
   const [p1, setP1] = useState('');
   const [p2, setP2] = useState('');
@@ -157,6 +160,24 @@ export default function Index() {
         alert('Password errata.');
       }
     }
+  };
+
+  const fetchFromOpenF1 = async () => {
+    if (!selectedGp) return;
+    setIsFetching(true);
+    setFetchStatus('idle');
+    const data = await fetchRaceResults(selectedGp.id);
+    if (data) {
+      setResP1(data.p1);
+      setResP2(data.p2);
+      setResP3(data.p3);
+      setDnfs(data.dnf.join(', '));
+      setRimonte(data.rimonta.join(', '));
+      setFetchStatus('ok');
+    } else {
+      setFetchStatus('error');
+    }
+    setIsFetching(false);
   };
 
   const copyToWhatsApp = (pred: Prediction) => {
@@ -471,6 +492,34 @@ export default function Index() {
                     </button>
                     <button type="button" onClick={handleResetApp} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary hover:text-white transition-colors">
                       <AlertCircle className="w-4 h-4" /> Reset App
+                    </button>
+                  </div>
+
+                  {/* Fetch automatico da OpenF1 */}
+                  <div className="flex items-center gap-4 p-4 bg-white/[0.03] border border-white/5 rounded-2xl">
+                    <div className="flex-1">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-white/30">Auto-fetch OpenF1</p>
+                      <p className="text-[9px] text-white/15 font-bold mt-0.5">Recupera P1/P2/P3, DNF e rimonte dalla classifica ufficiale</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={fetchFromOpenF1}
+                      disabled={isFetching || !selectedGp}
+                      className={`flex items-center gap-2 px-5 py-3 rounded-xl text-[10px] font-black italic uppercase tracking-widest transition-all ${
+                        isFetching ? 'bg-white/10 text-white/30 cursor-wait' :
+                        fetchStatus === 'ok' ? 'bg-green-600/30 text-green-400 border border-green-600/30' :
+                        fetchStatus === 'error' ? 'bg-red-600/20 text-red-400 border border-red-600/20' :
+                        'bg-primary/20 text-primary border border-primary/20 hover:bg-primary hover:text-white'
+                      }`}
+                    >
+                      {isFetching ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : fetchStatus === 'ok' ? (
+                        <CheckCircle2 className="w-4 h-4" />
+                      ) : (
+                        <Search className="w-4 h-4" />
+                      )}
+                      {isFetching ? 'Fetching...' : fetchStatus === 'ok' ? 'Loaded!' : fetchStatus === 'error' ? 'Error — retry' : 'Fetch Results'}
                     </button>
                   </div>
 
