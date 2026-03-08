@@ -164,23 +164,31 @@ export default function Index() {
     }
   };
 
-  const fetchFromOpenF1 = async () => {
-    if (!selectedGp) return;
+  const fetchFromOpenF1 = async (gpId?: string) => {
+    const gp = gpId ? gps.find(g => g.id === gpId) : selectedGp;
+    if (!gp) return;
     setIsFetching(true);
     setFetchStatus('idle');
-    const data = await fetchRaceResults(selectedGp.id);
-    if (data) {
-      setResP1(data.p1);
-      setResP2(data.p2);
-      setResP3(data.p3);
-      setDnfs(data.dnf.join(', '));
-      setRimonte(data.rimonta.join(', '));
-      setClassification(data.classification || []);
-      setFetchStatus('ok');
-    } else {
+    setClassification([]);
+    try {
+      const data = await fetchRaceResults(gp.id);
+      if (data) {
+        setResP1(data.p1);
+        setResP2(data.p2);
+        setResP3(data.p3);
+        setDnfs(data.dnf.join(', '));
+        setRimonte(data.rimonta.join(', '));
+        setClassification(data.classification || []);
+        setFetchStatus('ok');
+      } else {
+        setFetchStatus('error');
+      }
+    } catch (err) {
+      console.error('OpenF1 fetch error:', err);
       setFetchStatus('error');
+    } finally {
+      setIsFetching(false);
     }
-    setIsFetching(false);
   };
 
   const copyToWhatsApp = (pred: Prediction) => {
@@ -451,7 +459,14 @@ export default function Index() {
                       value={selectedGp?.id || ''}
                       onChange={e => {
                         const gp = gps.find(g => g.id === e.target.value);
-                        if (gp) { setSelectedGp(gp); setFetchStatus('idle'); setClassification([]); }
+                        if (gp) {
+                          setSelectedGp(gp);
+                          setFetchStatus('idle');
+                          setClassification([]);
+                          setResP1(''); setResP2(''); setResP3('');
+                          setDnfs(''); setRimonte('');
+                          if (gp.completed) setTimeout(() => fetchFromOpenF1(gp.id), 0);
+                        }
                       }}
                     >
                       {gps.map(g => (
@@ -461,15 +476,11 @@ export default function Index() {
                       ))}
                     </select>
                   </div>
-                  {classification.length > 0 && selectedGp && (
-                    <RaceClassification classification={classification} gpName={selectedGp.name} />
-                  )}
-                  {classification.length === 0 && (
-                    <div className="f1-card p-6 text-center space-y-2 opacity-30">
-                      <p className="text-[8px] font-black uppercase tracking-widest text-white/30">Nessuna classifica</p>
-                      <p className="text-[7px] text-white/20">Usa Fetch Results per caricare</p>
-                    </div>
-                  )}
+                  <RaceClassification
+                    classification={classification}
+                    gpName={selectedGp?.name || ''}
+                    loading={isFetching}
+                  />
                 </div>
 
                 {/* Colonna destra: form admin */}
