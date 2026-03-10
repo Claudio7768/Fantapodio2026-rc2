@@ -38,6 +38,7 @@ export default function Index() {
   const [adminPw, setAdminPw] = useState('');
   const [isFetching, setIsFetching] = useState(false);
   const [fetchStatus, setFetchStatus] = useState<'idle'|'ok'|'error'>('idle');
+  const [fetchError, setFetchError] = useState<string>('');
   const [classification, setClassification] = useState<DriverResult[]>([]);
 
   const [p1, setP1] = useState('');
@@ -95,6 +96,13 @@ export default function Index() {
       }
     }
   }, [selectedGp, user, predictions]);
+
+  // Auto-fetch quando si apre Race Control con un GP completato già selezionato
+  useEffect(() => {
+    if (view === 'admin' && selectedGp?.completed && classification.length === 0 && !isFetching) {
+      fetchFromOpenF1(selectedGp.id);
+    }
+  }, [view, selectedGp]);
 
   const handleLogin = async (name: string, password: string) => {
     const result = await loginTeam(name, password);
@@ -164,23 +172,33 @@ export default function Index() {
     }
   };
 
-  const fetchFromOpenF1 = async () => {
-    if (!selectedGp) return;
+  const fetchFromOpenF1 = async (gpId?: string) => {
+    const gp = gpId ? gps.find(g => g.id === gpId) : selectedGp;
+    if (!gp) return;
     setIsFetching(true);
     setFetchStatus('idle');
-    const data = await fetchRaceResults(selectedGp.id);
-    if (data) {
-      setResP1(data.p1);
-      setResP2(data.p2);
-      setResP3(data.p3);
-      setDnfs(data.dnf.join(', '));
-      setRimonte(data.rimonta.join(', '));
-      setClassification(data.classification || []);
-      setFetchStatus('ok');
-    } else {
+    setFetchError('');
+    setClassification([]);
+    try {
+      const data = await fetchRaceResults(gp.id);
+      if (data) {
+        setResP1(data.p1);
+        setResP2(data.p2);
+        setResP3(data.p3);
+        setDnfs(data.dnf.join(', '));
+        setRimonte(data.rimonta.join(', '));
+        setClassification(data.classification || []);
+        setFetchStatus('ok');
+      } else {
+        setFetchStatus('error');
+      }
+    } catch (err) {
+      console.error('OpenF1 fetch error:', err);
+      setFetchError(err instanceof Error ? err.message : String(err));
       setFetchStatus('error');
+    } finally {
+      setIsFetching(false);
     }
-    setIsFetching(false);
   };
 
   const copyToWhatsApp = (pred: Prediction) => {
@@ -222,7 +240,17 @@ export default function Index() {
             ].map(tab => (
               <button
                 key={tab.id}
-                onClick={() => setView(tab.id as any)}
+                onClick={() => {
+                    setView(tab.id as any);
+                    // Quando si apre Race Control, seleziona l'ultimo GP completato
+                    if (tab.id === 'admin') {
+                      const lastCompleted = [...gps].reverse().find(g => g.completed);
+                      if (lastCompleted && (!selectedGp?.completed)) {
+                        setSelectedGp(lastCompleted);
+                        setClassification([]);
+                      }
+                    }
+                  }}
                 className={`flex items-center gap-1.5 sm:gap-2 py-3 sm:py-4 px-4 sm:px-8 rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-black italic uppercase transition-all whitespace-nowrap ${
                   view === tab.id ? 'bg-primary text-primary-foreground shadow-xl' : 'text-white/40 hover:text-white'
                 }`}
@@ -451,7 +479,14 @@ export default function Index() {
                       value={selectedGp?.id || ''}
                       onChange={e => {
                         const gp = gps.find(g => g.id === e.target.value);
-                        if (gp) { setSelectedGp(gp); setFetchStatus('idle'); setClassification([]); }
+                        if (gp) {
+                          setSelectedGp(gp);
+                          setFetchStatus('idle');
+                          setClassification([]);
+                          setResP1(''); setResP2(''); setResP3('');
+                          setDnfs(''); setRimonte('');
+                          if (gp.completed) setTimeout(() => fetchFromOpenF1(gp.id), 0);
+                        }
                       }}
                     >
                       {gps.map(g => (
@@ -461,15 +496,11 @@ export default function Index() {
                       ))}
                     </select>
                   </div>
-                  {classification.length > 0 && selectedGp && (
-                    <RaceClassification classification={classification} gpName={selectedGp.name} />
-                  )}
-                  {classification.length === 0 && (
-                    <div className="f1-card p-6 text-center space-y-2 opacity-30">
-                      <p className="text-[8px] font-black uppercase tracking-widest text-white/30">Nessuna classifica</p>
-                      <p className="text-[7px] text-white/20">Usa Fetch Results per caricare</p>
-                    </div>
-                  )}
+                  <RaceClassification
+                    classification={classification}
+                    gpName={selectedGp?.name || ''}
+                    loading={isFetching}
+                  />
                 </div>
 
                 {/* Colonna destra: form admin */}
@@ -559,6 +590,12 @@ export default function Index() {
                       {isFetching ? 'Fetching...' : fetchStatus === 'ok' ? 'Loaded!' : fetchStatus === 'error' ? 'Error — retry' : 'Fetch Results'}
                     </button>
                   </div>
+                  {fetchStatus === 'error' && fetchError && (
+                    <div className="px-4 py-2 bg-red-900/20 border border-red-500/20 rounded-xl">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-red-400">Errore fetch</p>
+                      <p className="text-[9px] text-red-300/70 mt-0.5 font-mono break-all">{fetchError}</p>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     {[1, 2, 3].map(pos => (
