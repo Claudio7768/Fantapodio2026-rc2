@@ -66,7 +66,7 @@ export const DRIVERS: Array<{ number: number; name: string; team: string }> = [
   { number: 12, name: 'Antonelli',   team: 'Mercedes' },
   { number: 77, name: 'Bottas',      team: 'Cadillac' },
   { number: 11, name: 'Perez',       team: 'Cadillac' },
-  { number: 27, name: 'Hülkenberg',  team: 'Audi' },
+  { number: 27, name: 'Hulkenberg',  team: 'Audi' },
   { number: 5,  name: 'Bortoleto',   team: 'Audi' },
   { number: 14, name: 'Alonso',      team: 'Aston Martin' },
   { number: 18, name: 'Stroll',      team: 'Aston Martin' },
@@ -93,7 +93,7 @@ export const INITIAL_TEAMS: Team[] = [
 // Imola (Emilia Romagna) rimossa dal calendario
 // Azerbaijan e Las Vegas: gare di sabato
 export const INITIAL_GPS: GP[] = [
-  { id: 'australia',  name: 'Australian Grand Prix',          location: 'Melbourne',   date: '2026-03-08', start_time: '2026-03-08T04:00:00Z', completed: false },
+  { id: 'australia',  name: 'Australian Grand Prix',          location: 'Melbourne',   date: '2026-03-08', start_time: '2026-03-08T04:00:00Z', completed: true  },
   { id: 'china',      name: 'Chinese Grand Prix',             location: 'Shanghai',    date: '2026-03-15', start_time: '2026-03-15T07:00:00Z', completed: false },
   { id: 'japan',      name: 'Japanese Grand Prix',            location: 'Suzuka',      date: '2026-03-29', start_time: '2026-03-29T05:00:00Z', completed: false },
   { id: 'bahrain',    name: 'Bahrain Grand Prix',             location: 'Sakhir',      date: '2026-04-12', start_time: '2026-04-12T14:00:00Z', completed: false },

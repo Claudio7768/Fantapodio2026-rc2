@@ -38,6 +38,7 @@ export default function Index() {
   const [adminPw, setAdminPw] = useState('');
   const [isFetching, setIsFetching] = useState(false);
   const [fetchStatus, setFetchStatus] = useState<'idle'|'ok'|'error'>('idle');
+  const [fetchError, setFetchError] = useState<string>('');
   const [classification, setClassification] = useState<DriverResult[]>([]);
 
   const [p1, setP1] = useState('');
@@ -169,6 +170,7 @@ export default function Index() {
     if (!gp) return;
     setIsFetching(true);
     setFetchStatus('idle');
+    setFetchError('');
     setClassification([]);
     try {
       const data = await fetchRaceResults(gp.id);
@@ -185,6 +187,7 @@ export default function Index() {
       }
     } catch (err) {
       console.error('OpenF1 fetch error:', err);
+      setFetchError(err instanceof Error ? err.message : String(err));
       setFetchStatus('error');
     } finally {
       setIsFetching(false);
@@ -570,6 +573,12 @@ export default function Index() {
                       {isFetching ? 'Fetching...' : fetchStatus === 'ok' ? 'Loaded!' : fetchStatus === 'error' ? 'Error — retry' : 'Fetch Results'}
                     </button>
                   </div>
+                  {fetchStatus === 'error' && fetchError && (
+                    <div className="px-4 py-2 bg-red-900/20 border border-red-500/20 rounded-xl">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-red-400">Errore fetch</p>
+                      <p className="text-[9px] text-red-300/70 mt-0.5 font-mono break-all">{fetchError}</p>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     {[1, 2, 3].map(pos => (

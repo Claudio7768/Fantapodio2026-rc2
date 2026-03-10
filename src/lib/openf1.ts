@@ -72,14 +72,19 @@ async function findRaceSession(gpId: string, year: number): Promise<number> {
 
 export async function fetchRaceResults(gpId: string): Promise<OpenF1RaceData | null> {
   try {
-    // Prova prima 2026, poi 2025 come fallback
-    let sessionKey: number;
-    try {
-      sessionKey = await findRaceSession(gpId, 2026);
-    } catch {
-      console.warn('No 2026 session, trying 2025...');
-      sessionKey = await findRaceSession(gpId, 2025);
+    // Prova anni in ordine: 2026, 2025, 2024
+    let sessionKey: number | null = null;
+    const currentYear = new Date().getFullYear();
+    for (const year of [currentYear, currentYear - 1, currentYear - 2]) {
+      try {
+        sessionKey = await findRaceSession(gpId, year);
+        console.log(`Sessione trovata: anno ${year}, key ${sessionKey}`);
+        break;
+      } catch (e) {
+        console.warn(`Nessuna sessione per anno ${year}:`, e);
+      }
     }
+    if (!sessionKey) throw new Error(`Nessuna sessione Race trovata per GP "${gpId}" (anni ${currentYear}-${currentYear-2})`);
 
     const [driversRaw, positions, laps] = await Promise.all([
       apiFetch<Array<{
