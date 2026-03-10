@@ -18,13 +18,15 @@ const VALID_GP_IDS = new Set(INITIAL_GPS.map(g => g.id));
 
 function enrichGP(row: any): GP {
   const meta = GP_META[row.id] || { start_time: `${row.date}T13:00:00Z`, location: row.circuit || '' };
+  // fallback su INITIAL_GPS: se DB ha completed=false ma la costante dice true, usa true
+  const initialCompleted = INITIAL_GPS.find(g => g.id === row.id)?.completed ?? false;
   return {
     id: row.id,
     name: row.name,
     location: meta.location,
     date: row.date || '',
     start_time: meta.start_time,
-    completed: !!row.completed,
+    completed: !!row.completed || initialCompleted,
   };
 }
 
