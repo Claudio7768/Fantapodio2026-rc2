@@ -23,6 +23,13 @@ import {
 import { fetchRaceResults, DriverResult } from '@/lib/openf1';
 import { RaceClassification } from '@/components/RaceClassification';
 
+// Controlla se sono trascorse almeno 24 ore dalla start_time del GP
+function isResultsAvailable(gp: { start_time: string } | null): boolean {
+  if (!gp) return false;
+  const gpEnd = new Date(gp.start_time).getTime();
+  return Date.now() > gpEnd + 24 * 60 * 60 * 1000;
+}
+
 export default function Index() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [gps, setGps] = useState<GP[]>([]);
@@ -98,10 +105,16 @@ export default function Index() {
     }
   }, [selectedGp, user, predictions]);
 
-  // Auto-fetch quando si apre Race Control con un GP completato già selezionato
+  // Auto-fetch quando si apre Race Control con un GP completato E sono passate 24h
   // Usa isFetchingRef (non state) per evitare stale closure
   useEffect(() => {
-    if (view === 'admin' && selectedGp?.completed && classification.length === 0 && !isFetchingRef.current) {
+    if (
+      view === 'admin' &&
+      selectedGp?.completed &&
+      isResultsAvailable(selectedGp) &&
+      classification.length === 0 &&
+      !isFetchingRef.current
+    ) {
       fetchFromOpenF1(selectedGp.id);
     }
   }, [view, selectedGp]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -489,7 +502,7 @@ export default function Index() {
                           setClassification([]);
                           setResP1(''); setResP2(''); setResP3('');
                           setDnfs(''); setRimonte('');
-                          if (gp.completed) setTimeout(() => fetchFromOpenF1(gp.id), 0);
+                          if (gp.completed && isResultsAvailable(gp)) setTimeout(() => fetchFromOpenF1(gp.id), 0);
                         }
                       }}
                     >
