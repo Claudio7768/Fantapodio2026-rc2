@@ -38,26 +38,44 @@ export interface OpenF1RaceData {
 }
 
 // ── Risultati hardcoded per gare già disputate ─────────────────
+// Fonte: FIA / formula1.com / GPFans / Wikipedia
 const HARDCODED_RESULTS: Record<string, OpenF1RaceData> = {
   australia: {
-    p1: 'Russell', p2: 'Antonelli', p3: 'Leclerc',
-    dnf: ['Stroll', 'Alonso', 'Bottas'],
-    rimonta: [],
+    // Podio ufficiale FIA — Albert Park, 8 Mar 2026
+    p1: 'Russell',
+    p2: 'Antonelli',
+    p3: 'Leclerc',
+    // DNF durante la gara (Hadjar: guasto tecnico, Bottas: ritiro VSC, Alonso: ritiro)
+    dnf: ['Hadjar', 'Bottas', 'Alonso'],
+    // Rimonta: Verstappen P20 → P6
+    rimonta: ['Verstappen'],
     classification: [
-      { pos: 1,  number: 63, name: 'Russell',   acronym: 'RUS', team: 'Mercedes',     gap: 'WINNER',  gapToLeader: null,   fastestLap: false, dnf: false, startPos: 1  },
-      { pos: 2,  number: 12, name: 'Antonelli', acronym: 'ANT', team: 'Mercedes',     gap: '+2.974',  gapToLeader: 2.974,  fastestLap: false, dnf: false, startPos: 3  },
-      { pos: 3,  number: 16, name: 'Leclerc',   acronym: 'LEC', team: 'Ferrari',      gap: '+5.123',  gapToLeader: 5.123,  fastestLap: true,  dnf: false, startPos: 4  },
-      { pos: 4,  number: 44, name: 'Hamilton',  acronym: 'HAM', team: 'Ferrari',      gap: '+8.451',  gapToLeader: 8.451,  fastestLap: false, dnf: false, startPos: 5  },
-      { pos: 5,  number: 1,  name: 'Norris',    acronym: 'NOR', team: 'McLaren',      gap: '+12.034', gapToLeader: 12.034, fastestLap: false, dnf: false, startPos: 6  },
-      { pos: 6,  number: 81, name: 'Piastri',   acronym: 'PIA', team: 'McLaren',      gap: '+15.210', gapToLeader: 15.210, fastestLap: false, dnf: false, startPos: 7  },
-      { pos: 7,  number: 55, name: 'Sainz',     acronym: 'SAI', team: 'Williams',     gap: '+20.876', gapToLeader: 20.876, fastestLap: false, dnf: false, startPos: 8  },
-      { pos: 8,  number: 23, name: 'Albon',     acronym: 'ALB', team: 'Williams',     gap: '+25.432', gapToLeader: 25.432, fastestLap: false, dnf: false, startPos: 9  },
-      { pos: 9,  number: 10, name: 'Gasly',     acronym: 'GAS', team: 'Alpine',       gap: '+30.111', gapToLeader: 30.111, fastestLap: false, dnf: false, startPos: 10 },
-      { pos: 10, number: 31, name: 'Ocon',      acronym: 'OCO', team: 'Haas',         gap: '+35.678', gapToLeader: 35.678, fastestLap: false, dnf: false, startPos: 11 },
-      { pos: 11, number: 22, name: 'Tsunoda',   acronym: 'TSU', team: 'Red Bull',     gap: '+40.234', gapToLeader: 40.234, fastestLap: false, dnf: false, startPos: 12 },
-      { pos: 12, number: 14, name: 'Alonso',    acronym: 'ALO', team: 'Aston Martin', gap: 'DNF',     gapToLeader: null,   fastestLap: false, dnf: true,  startPos: 2  },
-      { pos: 13, number: 77, name: 'Bottas',    acronym: 'BOT', team: 'Sauber',       gap: 'DNF',     gapToLeader: null,   fastestLap: false, dnf: true,  startPos: 13 },
-      { pos: 14, number: 18, name: 'Stroll',    acronym: 'STR', team: 'Aston Martin', gap: 'DNF',     gapToLeader: null,   fastestLap: false, dnf: true,  startPos: 14 },
+      // ── TOP 10 (confermati dalle fonti ufficiali) ──────────────────
+      { pos: 1,  number: 63, name: 'Russell',   acronym: 'RUS', team: 'Mercedes',      gap: 'WINNER',  gapToLeader: null,   fastestLap: false, dnf: false, startPos: 1  },
+      { pos: 2,  number: 12, name: 'Antonelli', acronym: 'ANT', team: 'Mercedes',      gap: '+2.9',    gapToLeader: 2.9,    fastestLap: false, dnf: false, startPos: 2  },
+      { pos: 3,  number: 16, name: 'Leclerc',   acronym: 'LEC', team: 'Ferrari',       gap: '+15.0',   gapToLeader: 15.0,   fastestLap: false, dnf: false, startPos: 4  },
+      { pos: 4,  number: 44, name: 'Hamilton',  acronym: 'HAM', team: 'Ferrari',       gap: '+15.6',   gapToLeader: 15.6,   fastestLap: false, dnf: false, startPos: 7  },
+      { pos: 5,  number: 1,  name: 'Norris',    acronym: 'NOR', team: 'McLaren',       gap: '+55.3',   gapToLeader: 55.3,   fastestLap: false, dnf: false, startPos: 5  },
+      { pos: 6,  number: 3,  name: 'Verstappen',acronym: 'VER', team: 'Red Bull',      gap: '+62.1',   gapToLeader: 62.1,   fastestLap: true,  dnf: false, startPos: 20 },
+      { pos: 7,  number: 87, name: 'Bearman',   acronym: 'BEA', team: 'Haas',          gap: '+1 LAP',  gapToLeader: null,   fastestLap: false, dnf: false, startPos: 8  },
+      { pos: 8,  number: 41, name: 'Lindblad',  acronym: 'LIN', team: 'Racing Bulls',  gap: '+1 LAP',  gapToLeader: null,   fastestLap: false, dnf: false, startPos: 9  },
+      { pos: 9,  number: 5,  name: 'Bortoleto', acronym: 'BOR', team: 'Audi',          gap: '+1 LAP',  gapToLeader: null,   fastestLap: false, dnf: false, startPos: 15 },
+      { pos: 10, number: 10, name: 'Gasly',     acronym: 'GAS', team: 'Alpine',        gap: '+1 LAP',  gapToLeader: null,   fastestLap: false, dnf: false, startPos: 12 },
+      // ── P11–P17 (ordine approssimato) ─────────────────────────────
+      { pos: 11, number: 31, name: 'Ocon',      acronym: 'OCO', team: 'Haas',          gap: '+1 LAP',  gapToLeader: null,   fastestLap: false, dnf: false, startPos: 14 },
+      { pos: 12, number: 30, name: 'Lawson',    acronym: 'LAW', team: 'Racing Bulls',  gap: '+1 LAP',  gapToLeader: null,   fastestLap: false, dnf: false, startPos: 13 },
+      { pos: 13, number: 43, name: 'Colapinto', acronym: 'COL', team: 'Alpine',        gap: '+1 LAP',  gapToLeader: null,   fastestLap: false, dnf: false, startPos: 10 },
+      { pos: 14, number: 23, name: 'Albon',     acronym: 'ALB', team: 'Williams',      gap: '+1 LAP',  gapToLeader: null,   fastestLap: false, dnf: false, startPos: 16 },
+      { pos: 15, number: 55, name: 'Sainz',     acronym: 'SAI', team: 'Williams',      gap: '+2 LAPS', gapToLeader: null,   fastestLap: false, dnf: false, startPos: 21 },
+      { pos: 16, number: 11, name: 'Perez',     acronym: 'PER', team: 'Cadillac',      gap: '+2 LAPS', gapToLeader: null,   fastestLap: false, dnf: false, startPos: 17 },
+      { pos: 17, number: 18, name: 'Stroll',    acronym: 'STR', team: 'Aston Martin',  gap: '+2 LAPS', gapToLeader: null,   fastestLap: false, dnf: false, startPos: 22 },
+      // ── DNF (ritirati durante la gara) ────────────────────────────
+      { pos: 18, number: 14, name: 'Alonso',    acronym: 'ALO', team: 'Aston Martin',  gap: 'DNF',     gapToLeader: null,   fastestLap: false, dnf: true,  startPos: 3  },
+      { pos: 19, number: 77, name: 'Bottas',    acronym: 'BOT', team: 'Cadillac',      gap: 'DNF',     gapToLeader: null,   fastestLap: false, dnf: true,  startPos: 18 },
+      { pos: 20, number: 6,  name: 'Hadjar',    acronym: 'HAD', team: 'Red Bull',      gap: 'DNF',     gapToLeader: null,   fastestLap: false, dnf: true,  startPos: 3  },
+      // ── DNS (non hanno preso il via) ──────────────────────────────
+      { pos: 21, number: 81, name: 'Piastri',   acronym: 'PIA', team: 'McLaren',       gap: 'DNS',     gapToLeader: null,   fastestLap: false, dnf: true,  startPos: 6  },
+      { pos: 22, number: 27, name: 'Hulkenberg',acronym: 'HUL', team: 'Audi',          gap: 'DNS',     gapToLeader: null,   fastestLap: false, dnf: true,  startPos: 11 },
     ],
   },
 };
@@ -72,7 +90,6 @@ async function apiFetch<T>(path: string, retries = 2): Promise<T> {
     });
     if (res.status === 429) {
       if (attempt < retries) {
-        // Rispetta Retry-After se presente, altrimenti 2s
         const retryAfter = parseInt(res.headers.get('Retry-After') || '2', 10);
         await delay(retryAfter * 1000);
         continue;
@@ -112,7 +129,7 @@ async function findRaceSession(gpId: string, year: number): Promise<number> {
 export async function fetchRaceResults(gpId: string): Promise<OpenF1RaceData | null> {
   // Prima controlla risultati hardcoded — nessuna chiamata API
   if (HARDCODED_RESULTS[gpId]) {
-    console.log(`Hardcoded results per GP: ${gpId}`);
+    console.log(`[openf1] Hardcoded results per GP: ${gpId}`);
     return HARDCODED_RESULTS[gpId];
   }
 
@@ -122,15 +139,15 @@ export async function fetchRaceResults(gpId: string): Promise<OpenF1RaceData | n
     for (const year of [currentYear, currentYear - 1, currentYear - 2]) {
       try {
         sessionKey = await findRaceSession(gpId, year);
-        console.log(`Sessione trovata: anno ${year}, key ${sessionKey}`);
+        console.log(`[openf1] Sessione trovata: anno ${year}, key ${sessionKey}`);
         break;
       } catch (e) {
-        console.warn(`Nessuna sessione per anno ${year}:`, e);
+        console.warn(`[openf1] Nessuna sessione per anno ${year}:`, e);
       }
     }
     if (!sessionKey) throw new Error(`Nessuna sessione Race trovata per GP "${gpId}"`);
 
-    // Chiamate SEQUENZIALI con delay per evitare rate limit OpenF1
+    // Chiamate SEQUENZIALI con delay per rispettare rate limit OpenF1
     const driversRaw = await apiFetch<Array<{
       driver_number: number; last_name: string;
       name_acronym: string; team_name: string;
@@ -150,14 +167,14 @@ export async function fetchRaceResults(gpId: string): Promise<OpenF1RaceData | n
 
     await delay(600);
 
-    // Intervals opzionale
+    // Intervals opzionale (non sempre disponibile)
     let intervals: Array<{
       driver_number: number; gap_to_leader: number | null; date: string;
     }> = [];
     try {
       intervals = await apiFetch(`/intervals?session_key=${sessionKey}`);
     } catch {
-      console.warn('intervals non disponibile');
+      console.warn('[openf1] /intervals non disponibile, proseguo senza');
     }
 
     if (!driversRaw.length || !positions.length) {
@@ -254,7 +271,7 @@ export async function fetchRaceResults(gpId: string): Promise<OpenF1RaceData | n
     return { p1, p2, p3, dnf, rimonta, classification };
 
   } catch (err) {
-    console.error('fetchRaceResults error:', err);
+    console.error('[openf1] fetchRaceResults error:', err);
     return null;
   }
 }

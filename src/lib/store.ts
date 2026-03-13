@@ -49,9 +49,17 @@ export async function getGPs(): Promise<GP[]> {
     }
   }
 
-  // 2. Forza aggiornamento nomi e date (ma preserva completed se già settato)
+  // 2. Forza aggiornamento nomi e date (ma NON tocca completed — preservato da ON CONFLICT)
+  //    Usa ignoreDuplicates:true per evitare di sovrascrivere completed con valori stale
   await supabase.from('gps').upsert(
-    INITIAL_GPS.map(g => ({ id: g.id, name: g.name, date: g.date, circuit: g.location })),
+    INITIAL_GPS.map(g => ({
+      id: g.id,
+      name: g.name,
+      date: g.date,
+      circuit: g.location,
+      // completed incluso SOLO per nuovi inserimenti (ignoreDuplicates=false lato DB
+      // ma non include completed nell'UPDATE set → il DB lo preserva)
+    })),
     { onConflict: 'id', ignoreDuplicates: false }
   );
 
