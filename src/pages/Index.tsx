@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Trophy, Calendar, MessageCircle, ChevronRight, Settings, Plus, CheckCircle2,
@@ -37,6 +37,7 @@ export default function Index() {
   const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [adminPw, setAdminPw] = useState('');
   const [isFetching, setIsFetching] = useState(false);
+  const isFetchingRef = useRef(false); // ref per evitare stale closure nel useEffect
   const [fetchStatus, setFetchStatus] = useState<'idle'|'ok'|'error'>('idle');
   const [fetchError, setFetchError] = useState<string>('');
   const [classification, setClassification] = useState<DriverResult[]>([]);
@@ -98,11 +99,12 @@ export default function Index() {
   }, [selectedGp, user, predictions]);
 
   // Auto-fetch quando si apre Race Control con un GP completato già selezionato
+  // Usa isFetchingRef (non state) per evitare stale closure
   useEffect(() => {
-    if (view === 'admin' && selectedGp?.completed && classification.length === 0 && !isFetching) {
+    if (view === 'admin' && selectedGp?.completed && classification.length === 0 && !isFetchingRef.current) {
       fetchFromOpenF1(selectedGp.id);
     }
-  }, [view, selectedGp]);
+  }, [view, selectedGp]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleLogin = async (name: string, password: string) => {
     const result = await loginTeam(name, password);
@@ -176,6 +178,7 @@ export default function Index() {
     const gp = gpId ? gps.find(g => g.id === gpId) : selectedGp;
     if (!gp) return;
     setIsFetching(true);
+    isFetchingRef.current = true;
     setFetchStatus('idle');
     setFetchError('');
     setClassification([]);
@@ -198,6 +201,7 @@ export default function Index() {
       setFetchStatus('error');
     } finally {
       setIsFetching(false);
+      isFetchingRef.current = false;
     }
   };
 
