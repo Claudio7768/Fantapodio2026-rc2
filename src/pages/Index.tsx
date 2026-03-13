@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Trophy, Calendar, MessageCircle, ChevronRight, Settings, Plus, CheckCircle2,
-  AlertCircle, TrendingUp, Zap, ShieldAlert, Clock, Search, Loader2,
+  AlertCircle, TrendingUp, Zap, ShieldAlert, Clock, Search, Loader2, Radio,
 } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { Leaderboard } from '@/components/Leaderboard';
@@ -22,6 +22,7 @@ import {
 } from '@/lib/store';
 import { fetchRaceResults, DriverResult } from '@/lib/openf1';
 import { RaceClassification } from '@/components/RaceClassification';
+import { TeamRadio } from '@/components/TeamRadio';
 
 // Controlla se sono trascorse almeno 24 ore dalla start_time del GP
 function isResultsAvailable(gp: { start_time: string } | null): boolean {
@@ -37,7 +38,7 @@ export default function Index() {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [results, setResults] = useState<Result[]>([]);
   const [seasonStats, setSeasonStats] = useState<SeasonStats | null>(null);
-  const [view, setView] = useState<'dashboard' | 'predict' | 'stats' | 'admin'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'predict' | 'stats' | 'admin' | 'radio'>('dashboard');
   const [user, setUser] = useState<{ team_id: string; team_name: string } | null>(null);
   const [isPredicting, setIsPredicting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -253,6 +254,7 @@ export default function Index() {
               { id: 'dashboard', icon: <Zap className="w-3 h-3 sm:w-4 sm:h-4" />, label: 'Paddock' },
               { id: 'stats',     icon: <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />, label: 'Standings' },
               { id: 'predict',   icon: <Plus className="w-3 h-3 sm:w-4 sm:h-4" />, label: 'Predict' },
+              { id: 'radio',     icon: <Radio className="w-3 h-3 sm:w-4 sm:h-4" />, label: 'Team Radio' },
               { id: 'admin',     icon: <Settings className="w-3 h-3 sm:w-4 sm:h-4" />, label: 'Race Control' },
             ].map(tab => (
               <button
@@ -479,6 +481,13 @@ export default function Index() {
                   })()}
                 </form>
               )}
+            </motion.div>
+          )}
+
+          {/* ── TEAM RADIO ── */}
+          {view === 'radio' && (
+            <motion.div key="radio" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+              <TeamRadio user={user} />
             </motion.div>
           )}
 
