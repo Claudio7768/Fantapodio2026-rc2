@@ -4,7 +4,7 @@ export function Rules() {
   const scoring = [
     { pts: '+25', label: 'Pilota in posizione esatta',                         color: 'text-yellow-400' },
     { pts: '+10', label: 'Pilota nel podio, posizione sbagliata',               color: 'text-primary' },
-    { pts: '+20', label: 'Bonus En Plein — podio esatto nell'ordine',          color: 'text-green-400' },
+    { pts: '+20', label: 'Bonus En Plein — podio esatto nell\'ordine',          color: 'text-green-400' },
     { pts: '+10', label: 'Bonus Rimonta Killer — parte 11°+ e arriva a podio',  color: 'text-blue-400' },
     { pts: '−10', label: 'Malus DNF — pilota pronosticato ritirato',            color: 'text-red-400' },
     { pts: '−5',  label: 'Malus Penalità FIA — pilota penalizzato e scalato',   color: 'text-orange-400' },
