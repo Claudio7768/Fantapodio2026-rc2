@@ -148,11 +148,17 @@ export function calcScore(pred: Prediction, result: Result): number {
   const rp = [result.p1, result.p2, result.p3];
   const pp = [pred.p1, pred.p2, pred.p3];
 
-  const dnfList     = Array.isArray(result.dnf)       ? result.dnf       : [];
-  const penaltyList = Array.isArray(result.penalties)  ? result.penalties : [];
-  const rimontaList = typeof result.rimonta === 'string'
-    ? result.rimonta.split(',').map(s => s.trim()).filter(Boolean)
-    : Array.isArray(result.rimonta) ? result.rimonta : [];
+  const parseField = (v: any): string[] => {
+    if (Array.isArray(v)) return v;
+    if (typeof v === 'string' && v.startsWith('[')) {
+      try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch { return []; }
+    }
+    if (typeof v === 'string' && v.length > 0) return v.split(',').map(s => s.trim()).filter(Boolean);
+    return [];
+  };
+  const dnfList     = parseField(result.dnf);
+  const penaltyList = parseField(result.penalties);
+  const rimontaList = parseField(result.rimonta);
 
   pp.forEach((driver) => {
     if (dnfList.includes(driver)) {
