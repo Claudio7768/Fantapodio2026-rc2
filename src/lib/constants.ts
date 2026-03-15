@@ -156,22 +156,20 @@ export function calcScore(pred: Prediction, result: Result): number {
 
   pp.forEach((driver) => {
     if (dnfList.includes(driver)) {
-      score -= 10;                                    // MALUS DNF
+      score -= 10;
     } else if (penaltyList.includes(driver)) {
-      score -= 5;                                     // MALUS penalità FIA
+      score -= 5;
     } else if (driver === rp[pp.indexOf(driver)]) {
-      score += 25;                                    // posizione esatta
+      score += 25;
     } else if (rp.includes(driver)) {
-      score += 10;                                    // nel podio, posizione sbagliata
+      score += 10;
     }
 
-    // BONUS Rimonta Killer: pronosticato, partiva 11°+, arrivato a podio
     if (!dnfList.includes(driver) && rimontaList.includes(driver) && rp.includes(driver)) {
       score += 10;
     }
   });
 
-  // BONUS En Plein: podio esatto nell'ordine
   if (pred.p1 === result.p1 && pred.p2 === result.p2 && pred.p3 === result.p3) {
     score += 20;
   }
