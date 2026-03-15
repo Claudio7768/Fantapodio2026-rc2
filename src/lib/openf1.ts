@@ -146,10 +146,9 @@ async function readFromSupabase(gpId: string): Promise<OpenF1RaceData | null> {
 
     if (!data?.p1) return null;
 
-    // classification opzionale — se non presente usa array vuoto
-    const cls: DriverResult[] = Array.isArray(data.classification) && data.classification.length > 0
-      ? data.classification as DriverResult[]
-      : [];
+    // Se classification è vuota, torna null → usa dati hardcoded
+    if (!Array.isArray(data.classification) || data.classification.length === 0) return null;
+    const cls = data.classification as DriverResult[];
 
     const parseField = (v: any): string[] => {
       if (Array.isArray(v)) return v;
