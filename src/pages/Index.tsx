@@ -21,9 +21,10 @@ import {
   getSeasonStats, resetApp,
 } from '@/lib/store';
 import { fetchRaceResults, DriverResult } from '@/lib/openf1';
-import { GP_RESULTS } from '@/lib/gp-results';
 import { RaceClassification } from '@/components/RaceClassification';
 import { TeamRadio } from '@/components/TeamRadio';
+import { ClassificationEditor } from '@/components/ClassificationEditor';
+import type { DriverResult } from '@/lib/openf1';
 
 // Controlla se sono trascorse almeno 24 ore dalla start_time del GP
 function isResultsAvailable(gp: { start_time: string } | null): boolean {
@@ -50,6 +51,7 @@ export default function Index() {
   const [fetchStatus, setFetchStatus] = useState<'idle'|'ok'|'error'>('idle');
   const [fetchError, setFetchError] = useState<string>('');
   const [classification, setClassification] = useState<DriverResult[]>([]);
+  const [classificationDraft, setClassificationDraft] = useState<DriverResult[]>([]);
 
   const [p1, setP1] = useState('');
   const [p2, setP2] = useState('');
@@ -167,7 +169,9 @@ export default function Index() {
       dnfs.split(',').map(s => s.trim()).filter(Boolean),
       penalties.split(',').map(s => s.trim()).filter(Boolean),
       rimonte.split(',').map(s => s.trim()).filter(Boolean),
+      classificationDraft,
     );
+    setClassification(classificationDraft);
     await refreshData(selectedGp);
     setView('dashboard');
     alert('Risultati salvati e punteggi aggiornati!');
@@ -198,19 +202,7 @@ export default function Index() {
     setFetchError('');
     setClassification([]);
     try {
-      // 1. Controlla risultati ufficiali in gp-results.ts
-      const known = GP_RESULTS[gp.id];
-      if (known) {
-        setResP1(known.p1);
-        setResP2(known.p2);
-        setResP3(known.p3);
-        setDnfs(known.dnf.join(', '));
-        setRimonte(known.rimonta.join(', '));
-        setClassification(known.classification || []);
-        setFetchStatus('ok');
-        return;
-      }
-      // 2. Fallback OpenF1 API per GP live/recenti
+      // Legge da Supabase (popolato al salvataggio risultati)
       const data = await fetchRaceResults(gp.id);
       if (data) {
         setResP1(data.p1);
@@ -673,6 +665,29 @@ export default function Index() {
                       <label className="text-[10px] font-black uppercase tracking-widest text-white/20">Rimonte Killer (Started 11th+ → Top 10)</label>
                       <input value={rimonte} onChange={e => setRimonte(e.target.value)} placeholder="Norris, Bearman..." className="f1-input" />
                     </div>
+                  </div>
+
+                  {/* Editor classifica completa */}
+                  <div className="space-y-3 pt-2 border-t border-white/5">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-white/30">Classifica completa</p>
+                    <ClassificationEditor
+                      gpId={selectedGp?.id || ''}
+                      value={classificationDraft}
+                      onChange={(rows) => {
+                        setClassificationDraft(rows);
+                        // Auto-popola p1/p2/p3 dai primi classificati non-DNF
+                        const finishers = rows.filter(r => !r.dnf).sort((a, b) => a.pos - b.pos);
+                        if (finishers[0]) setResP1(finishers[0].name);
+                        if (finishers[1]) setResP2(finishers[1].name);
+                        if (finishers[2]) setResP3(finishers[2].name);
+                        // Auto-popola DNF
+                        const dnfList = rows.filter(r => r.dnf).map(r => r.name);
+                        if (dnfList.length > 0) setDnfs(dnfList.join(', '));
+                        // Auto-popola rimonte (partito 11°+ arrivato top10)
+                        const rimontaList = rows.filter(r => !r.dnf && r.pos <= 10 && r.startPos >= 11).map(r => r.name);
+                        if (rimontaList.length > 0) setRimonte(rimontaList.join(', '));
+                      }}
+                    />
                   </div>
 
                   <button type="submit" className="f1-button w-full py-6 text-xl">Publish Official Results</button>
