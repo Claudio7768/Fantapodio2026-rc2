@@ -105,7 +105,8 @@ const HARDCODED_RESULTS: Record<string, OpenF1RaceData> = {
 // ── Salva i dati su Supabase ──────────────────────────────────
 async function saveToSupabase(gpId: string, data: OpenF1RaceData): Promise<void> {
   try {
-    await supabase.from('results').upsert(
+    // Prova prima con classification
+    const { error } = await supabase.from('results').upsert(
       {
         gp_id: gpId,
         p1: data.p1,
@@ -118,6 +119,15 @@ async function saveToSupabase(gpId: string, data: OpenF1RaceData): Promise<void>
       },
       { onConflict: 'gp_id' }
     );
+    if (error) {
+      // Fallback senza classification (colonna non ancora aggiunta)
+      await supabase.from('results').upsert(
+        { gp_id: gpId, p1: data.p1, p2: data.p2, p3: data.p3,
+          dnf: data.dnf, penalties: [], rimonta: data.rimonta.join(', ') },
+        { onConflict: 'gp_id' }
+      );
+      console.warn('[openf1] Salvato senza classification (colonna mancante?)');
+    }
     await supabase.from('gps').update({ completed: true }).eq('id', gpId);
     console.log(`[openf1] Dati salvati su Supabase per GP: ${gpId}`);
   } catch (e) {
@@ -136,11 +146,10 @@ async function readFromSupabase(gpId: string): Promise<OpenF1RaceData | null> {
 
     if (!data?.p1) return null;
 
-    // classification deve essere un array non vuoto
-    const cls = Array.isArray(data.classification) && data.classification.length > 0
+    // classification opzionale — se non presente usa array vuoto
+    const cls: DriverResult[] = Array.isArray(data.classification) && data.classification.length > 0
       ? data.classification as DriverResult[]
-      : null;
-    if (!cls) return null;
+      : [];
 
     const parseField = (v: any): string[] => {
       if (Array.isArray(v)) return v;
