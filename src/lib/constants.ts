@@ -135,13 +135,46 @@ export function formatMilanTime(isoString: string): string {
   }
 }
 
+// ── Tabella punteggi ─────────────────────────────────────────
+// +25  posizione esatta nel podio
+// +10  pilota nel podio ma posizione sbagliata
+// +20  BONUS En Plein — podio indovinato nell'ordine esatto
+// +10  BONUS Rimonta Killer — pilota pronosticato partiva 11°+ ed è arrivato a podio
+// -10  MALUS DNF — pilota pronosticato non ha finito la gara
+//  -5  MALUS Penalità FIA — pilota pronosticato penalizzato e scalato fuori podio
+
 export function calcScore(pred: Prediction, result: Result): number {
   let score = 0;
   const rp = [result.p1, result.p2, result.p3];
   const pp = [pred.p1, pred.p2, pred.p3];
-  pp.forEach((driver, i) => {
-    if (driver === rp[i]) score += 25;
-    else if (rp.includes(driver)) score += 10;
+
+  const dnfList     = Array.isArray(result.dnf)       ? result.dnf       : [];
+  const penaltyList = Array.isArray(result.penalties)  ? result.penalties : [];
+  const rimontaList = typeof result.rimonta === 'string'
+    ? result.rimonta.split(',').map(s => s.trim()).filter(Boolean)
+    : Array.isArray(result.rimonta) ? result.rimonta : [];
+
+  pp.forEach((driver) => {
+    if (dnfList.includes(driver)) {
+      score -= 10;                                    // MALUS DNF
+    } else if (penaltyList.includes(driver)) {
+      score -= 5;                                     // MALUS penalità FIA
+    } else if (driver === rp[pp.indexOf(driver)]) {
+      score += 25;                                    // posizione esatta
+    } else if (rp.includes(driver)) {
+      score += 10;                                    // nel podio, posizione sbagliata
+    }
+
+    // BONUS Rimonta Killer: pronosticato, partiva 11°+, arrivato a podio
+    if (!dnfList.includes(driver) && rimontaList.includes(driver) && rp.includes(driver)) {
+      score += 10;
+    }
   });
+
+  // BONUS En Plein: podio esatto nell'ordine
+  if (pred.p1 === result.p1 && pred.p2 === result.p2 && pred.p3 === result.p3) {
+    score += 20;
+  }
+
   return score;
 }
