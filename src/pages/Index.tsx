@@ -21,6 +21,7 @@ import {
   getSeasonStats, resetApp,
 } from '@/lib/store';
 import { fetchRaceResults, DriverResult } from '@/lib/openf1';
+import { GP_RESULTS } from '@/lib/gp-results';
 import { RaceClassification } from '@/components/RaceClassification';
 import { TeamRadio } from '@/components/TeamRadio';
 
@@ -197,6 +198,19 @@ export default function Index() {
     setFetchError('');
     setClassification([]);
     try {
+      // 1. Controlla risultati ufficiali in gp-results.ts
+      const known = GP_RESULTS[gp.id];
+      if (known) {
+        setResP1(known.p1);
+        setResP2(known.p2);
+        setResP3(known.p3);
+        setDnfs(known.dnf.join(', '));
+        setRimonte(known.rimonta.join(', '));
+        setClassification(known.classification || []);
+        setFetchStatus('ok');
+        return;
+      }
+      // 2. Fallback OpenF1 API per GP live/recenti
       const data = await fetchRaceResults(gp.id);
       if (data) {
         setResP1(data.p1);
@@ -210,7 +224,7 @@ export default function Index() {
         setFetchStatus('error');
       }
     } catch (err) {
-      console.error('OpenF1 fetch error:', err);
+      console.error('Fetch error:', err);
       setFetchError(err instanceof Error ? err.message : String(err));
       setFetchStatus('error');
     } finally {
@@ -511,7 +525,7 @@ export default function Index() {
                           setClassification([]);
                           setResP1(''); setResP2(''); setResP3('');
                           setDnfs(''); setRimonte('');
-                          if (gp.completed && isResultsAvailable(gp)) setTimeout(() => fetchFromOpenF1(gp.id), 0);
+                          if (gp.completed) setTimeout(() => fetchFromOpenF1(gp.id), 0);
                         }
                       }}
                     >
