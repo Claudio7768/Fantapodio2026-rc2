@@ -66,7 +66,7 @@ export const DRIVERS: Array<{ number: number; name: string; team: string }> = [
   { number: 12, name: 'Antonelli',   team: 'Mercedes' },
   { number: 77, name: 'Bottas',      team: 'Cadillac' },
   { number: 11, name: 'Perez',       team: 'Cadillac' },
-  { number: 27, name: 'Hülkenberg',  team: 'Audi' },
+  { number: 27, name: 'Hulkenberg',  team: 'Audi' },
   { number: 5,  name: 'Bortoleto',   team: 'Audi' },
   { number: 14, name: 'Alonso',      team: 'Aston Martin' },
   { number: 18, name: 'Stroll',      team: 'Aston Martin' },
@@ -93,7 +93,7 @@ export const INITIAL_TEAMS: Team[] = [
 // Imola (Emilia Romagna) rimossa dal calendario
 // Azerbaijan e Las Vegas: gare di sabato
 export const INITIAL_GPS: GP[] = [
-  { id: 'australia',  name: 'Australian Grand Prix',          location: 'Melbourne',   date: '2026-03-08', start_time: '2026-03-08T04:00:00Z', completed: false },
+  { id: 'australia',  name: 'Australian Grand Prix',          location: 'Melbourne',   date: '2026-03-08', start_time: '2026-03-08T04:00:00Z', completed: true  },
   { id: 'china',      name: 'Chinese Grand Prix',             location: 'Shanghai',    date: '2026-03-15', start_time: '2026-03-15T07:00:00Z', completed: false },
   { id: 'japan',      name: 'Japanese Grand Prix',            location: 'Suzuka',      date: '2026-03-29', start_time: '2026-03-29T05:00:00Z', completed: false },
   { id: 'bahrain',    name: 'Bahrain Grand Prix',             location: 'Sakhir',      date: '2026-04-12', start_time: '2026-04-12T14:00:00Z', completed: false },
@@ -135,13 +135,52 @@ export function formatMilanTime(isoString: string): string {
   }
 }
 
+// ── Tabella punteggi ─────────────────────────────────────────
+// +25  posizione esatta nel podio
+// +10  pilota nel podio ma posizione sbagliata
+// +20  BONUS En Plein — podio indovinato nell'ordine esatto
+// +10  BONUS Rimonta Killer — pilota pronosticato partiva 11°+ ed è arrivato a podio
+// -10  MALUS DNF — pilota pronosticato non ha finito la gara
+//  -5  MALUS Penalità FIA — pilota pronosticato penalizzato e scalato fuori podio
+
 export function calcScore(pred: Prediction, result: Result): number {
   let score = 0;
   const rp = [result.p1, result.p2, result.p3];
   const pp = [pred.p1, pred.p2, pred.p3];
-  pp.forEach((driver, i) => {
-    if (driver === rp[i]) score += 25;
-    else if (rp.includes(driver)) score += 10;
+
+  const parseField = (v: any): string[] => {
+    if (Array.isArray(v)) return v;
+    if (typeof v === 'string' && v.startsWith('[')) {
+      try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch { return []; }
+    }
+    if (typeof v === 'string' && v.length > 0) return v.split(',').map(s => s.trim()).filter(Boolean);
+    return [];
+  };
+  const dnfList     = parseField(result.dnf);
+  const penaltyList = parseField(result.penalties);
+  const rimontaList = parseField(result.rimonta);
+
+  pp.forEach((driver) => {
+    if (dnfList.includes(driver)) {
+      score -= 10;                                    // MALUS DNF
+    } else if (penaltyList.includes(driver)) {
+      score -= 5;                                     // MALUS penalità FIA
+    } else if (driver === rp[pp.indexOf(driver)]) {
+      score += 25;                                    // posizione esatta
+    } else if (rp.includes(driver)) {
+      score += 10;                                    // nel podio, posizione sbagliata
+    }
+
+    // BONUS Rimonta Killer: pronosticato, partiva 11°+, arrivato a podio
+    if (!dnfList.includes(driver) && rimontaList.includes(driver) && rp.includes(driver)) {
+      score += 10;
+    }
   });
+
+  // BONUS En Plein: podio esatto nell'ordine
+  if (pred.p1 === result.p1 && pred.p2 === result.p2 && pred.p3 === result.p3) {
+    score += 20;
+  }
+
   return score;
 }
