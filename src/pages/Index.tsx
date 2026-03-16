@@ -254,7 +254,7 @@ export default function Index() {
 
       <main className="max-w-7xl mx-auto px-4 py-6 sm:py-12 space-y-8 sm:space-y-12">
         {/* Tab Navigation */}
-        <div className="flex justify-center overflow-x-auto pb-4 sm:pb-0">
+        <div className="flex justify-start sm:justify-center overflow-x-auto pb-4 sm:pb-0 px-1 sm:px-0">
           <div className="inline-flex p-1 bg-white/5 rounded-2xl sm:rounded-3xl border border-white/5 backdrop-blur-xl shadow-2xl">
             {[
               { id: 'dashboard', icon: <Zap className="w-3 h-3 sm:w-4 sm:h-4" />, label: 'Paddock' },
