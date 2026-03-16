@@ -325,11 +325,10 @@ export default function Index() {
             touchStartX.current = null;
           }}
         >
-          <AnimatePresence mode="wait" initial={false} custom={slideDir}>
+          <AnimatePresence mode="wait" initial={false}>
             {view === 'dashboard' && (
               <motion.div
                 key="dashboard"
-                custom={slideDir}
                 initial={{ x: slideDir * 60, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 exit={{ x: slideDir * -60, opacity: 0 }}
@@ -448,7 +447,6 @@ export default function Index() {
             {view === 'stats' && (
               <motion.div
                 key="stats"
-                custom={slideDir}
                 initial={{ x: slideDir * 60, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 exit={{ x: slideDir * -60, opacity: 0 }}
@@ -464,7 +462,6 @@ export default function Index() {
             {view === 'predict' && (
               <motion.div
                 key="predict"
-                custom={slideDir}
                 initial={{ x: slideDir * 60, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 exit={{ x: slideDir * -60, opacity: 0 }}
@@ -572,7 +569,6 @@ export default function Index() {
             {view === 'radio' && (
               <motion.div
                 key="radio"
-                custom={slideDir}
                 initial={{ x: slideDir * 60, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 exit={{ x: slideDir * -60, opacity: 0 }}
@@ -588,7 +584,6 @@ export default function Index() {
             {view === 'admin' && (
               <motion.div
                 key="admin"
-                custom={slideDir}
                 initial={{ x: slideDir * 60, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 exit={{ x: slideDir * -60, opacity: 0 }}
