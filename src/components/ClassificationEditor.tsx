@@ -79,14 +79,16 @@ export function ClassificationEditor({ gpId, value, onChange }: Props) {
       const fastestLapDriver = results.find((r: any) => r.FastestLap?.rank === '1');
 
       const newRows: DriverResult[] = results.map((r: any, idx: number) => {
-        const isDnf = !['Finished', '+1 Lap', '+2 Laps', '+3 Laps', '+4 Laps', '+5 Laps',
-                         '+6 Laps', '+7 Laps', '+8 Laps'].includes(r.status);
+        // Doppiati: status è "+N Lap/Laps" — non sono DNF
+        const isLapped = /^\+\d+ Lap/.test(r.status);
         const isDns = r.status === 'Did not start' || r.grid === '0';
+        const isDnf = !isDns && !isLapped && r.status !== 'Finished';
 
         let gap = '';
         if (idx === 0) gap = 'WINNER';
         else if (isDns) gap = 'DNS';
         else if (isDnf) gap = 'DNF';
+        else if (isLapped) gap = r.status.toUpperCase().replace('LAPS', 'LAPS').replace('LAP', 'LAP'); // es. "+1 LAP"
         else if (r.Time?.time) gap = '+' + r.Time.time;
         else gap = r.status || '—';
 
