@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   Trophy, Calendar, MessageCircle, ChevronRight, Settings, Plus, CheckCircle2,
   AlertCircle, TrendingUp, Zap, ShieldAlert, Clock, Search, Loader2, Radio,
@@ -20,11 +19,11 @@ import {
   loginTeam, registerTeam, submitPrediction, submitResult,
   getSeasonStats, resetApp,
 } from '@/lib/store';
-import { fetchRaceResults, DriverResult } from '@/lib/openf1';
+import { fetchRaceResults } from '@/lib/openf1';
+import type { DriverResult } from '@/lib/openf1';
 import { RaceClassification } from '@/components/RaceClassification';
 import { TeamRadio } from '@/components/TeamRadio';
 import { ClassificationEditor } from '@/components/ClassificationEditor';
-import type { DriverResult } from '@/lib/openf1';
 
 // Controlla se sono trascorse almeno 24 ore dalla start_time del GP
 function isResultsAvailable(gp: { start_time: string } | null): boolean {
@@ -41,7 +40,8 @@ export default function Index() {
   const [results, setResults] = useState<Result[]>([]);
   const [seasonStats, setSeasonStats] = useState<SeasonStats | null>(null);
   const [view, setView] = useState<'dashboard' | 'predict' | 'stats' | 'admin' | 'radio'>('dashboard');
-  const TAB_ORDER = ['dashboard', 'stats', 'predict', 'radio', 'admin'] as const;
+  const TAB_ORDER: Array<'dashboard' | 'stats' | 'predict' | 'radio' | 'admin'> = ['dashboard', 'stats', 'predict', 'radio', 'admin'];
+  const viewIndex = TAB_ORDER.indexOf(view as any);
   const [user, setUser] = useState<{ team_id: string; team_name: string } | null>(null);
   const [isPredicting, setIsPredicting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,6 +50,7 @@ export default function Index() {
   const [isFetching, setIsFetching] = useState(false);
   const isFetchingRef = useRef(false); // ref per evitare stale closure nel useEffect
   const touchStartX = useRef<number | null>(null);
+  const swipeContainerRef = useRef<HTMLDivElement>(null);
   const [fetchStatus, setFetchStatus] = useState<'idle'|'ok'|'error'>('idle');
   const [fetchError, setFetchError] = useState<string>('');
   const [classification, setClassification] = useState<DriverResult[]>([]);
@@ -254,21 +255,9 @@ export default function Index() {
     <div className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground pb-20">
       <Header user={user} onLogout={handleLogout} />
 
-      <main
-        className="max-w-7xl mx-auto px-4 py-6 sm:py-12 space-y-8 sm:space-y-12"
-        onTouchStart={e => { touchStartX.current = e.touches[0].clientX; }}
-        onTouchEnd={e => {
-          if (touchStartX.current === null) return;
-          const diff = touchStartX.current - e.changedTouches[0].clientX;
-          if (Math.abs(diff) < 60) return; // soglia minima 60px
-          const idx = TAB_ORDER.indexOf(view as any);
-          if (diff > 0 && idx < TAB_ORDER.length - 1) setView(TAB_ORDER[idx + 1]); // swipe left → avanti
-          else if (diff < 0 && idx > 0) setView(TAB_ORDER[idx - 1]); // swipe right → indietro
-          touchStartX.current = null;
-        }}
-      >
+      <main className="max-w-7xl mx-auto px-4 py-6 sm:py-12 space-y-4 sm:space-y-8">
         {/* Tab Navigation */}
-        <div className="flex justify-start sm:justify-center overflow-x-auto pb-4 sm:pb-0 px-1 sm:px-0">
+        <div className="flex justify-start sm:justify-center overflow-x-auto pb-3 sm:pb-0 no-scrollbar">
           <div className="inline-flex p-1 bg-white/5 rounded-2xl sm:rounded-3xl border border-white/5 backdrop-blur-xl shadow-2xl">
             {[
               { id: 'dashboard', icon: <Zap className="w-3 h-3 sm:w-4 sm:h-4" />, label: 'Paddock' },
@@ -281,7 +270,6 @@ export default function Index() {
                 key={tab.id}
                 onClick={() => {
                     setView(tab.id as any);
-                    // Quando si apre Race Control, seleziona l'ultimo GP completato
                     if (tab.id === 'admin') {
                       const lastCompleted = [...gps].reverse().find(g => g.completed);
                       if (lastCompleted && (!selectedGp?.completed)) {
@@ -302,10 +290,43 @@ export default function Index() {
           </div>
         </div>
 
-        <AnimatePresence mode="wait">
-          {/* ── DASHBOARD ── */}
-          {view === 'dashboard' && (
-            <motion.div key="dashboard" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        {/* Carousel — tutti i view affiancati, scorrimento fluido */}
+        <div
+          ref={swipeContainerRef}
+          className="relative overflow-hidden"
+          onTouchStart={e => { touchStartX.current = e.touches[0].clientX; }}
+          onTouchMove={e => {
+            if (touchStartX.current === null || !swipeContainerRef.current) return;
+            const diff = touchStartX.current - e.touches[0].clientX;
+            swipeContainerRef.current.style.setProperty('--drag', `${diff}px`);
+          }}
+          onTouchEnd={e => {
+            if (touchStartX.current === null) return;
+            const diff = touchStartX.current - e.changedTouches[0].clientX;
+            if (swipeContainerRef.current) swipeContainerRef.current.style.setProperty('--drag', '0px');
+            if (Math.abs(diff) >= 50) {
+              const idx = TAB_ORDER.indexOf(view as any);
+              if (diff > 0 && idx < TAB_ORDER.length - 1) {
+                const next = TAB_ORDER[idx + 1];
+                setView(next);
+                if (next === 'admin') {
+                  const lastCompleted = [...gps].reverse().find(g => g.completed);
+                  if (lastCompleted && (!selectedGp?.completed)) { setSelectedGp(lastCompleted); setClassification([]); }
+                }
+              } else if (diff < 0 && idx > 0) {
+                setView(TAB_ORDER[idx - 1]);
+              }
+            }
+            touchStartX.current = null;
+          }}
+        >
+          <div
+            className="flex transition-transform duration-300 ease-out"
+            style={{ transform: `translateX(calc(-${viewIndex * 100}% - var(--drag, 0px)))`, width: '500%' }}
+          >
+            {/* dashboard */}
+            <div className="w-1/5 flex-shrink-0 min-w-0 space-y-8 sm:space-y-12">
+
               <div className="lg:col-span-2 space-y-12">
                 {/* Next GP Card */}
                 <section className="f1-card p-6 sm:p-10 relative overflow-hidden group">
@@ -417,19 +438,17 @@ export default function Index() {
                 <Leaderboard teams={teams} />
                 <Rules />
               </div>
-            </motion.div>
-          )}
+            
+            </div>
+            {/* stats */}
+            <div className="w-1/5 flex-shrink-0 min-w-0 space-y-8 sm:space-y-12">
 
-          {/* ── STATS ── */}
-          {view === 'stats' && (
-            <motion.div key="stats" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
               <SeasonalStats stats={seasonStats} />
-            </motion.div>
-          )}
+            
+            </div>
+            {/* predict */}
+            <div className="w-1/5 flex-shrink-0 min-w-0 space-y-8 sm:space-y-12">
 
-          {/* ── PREDICT ── */}
-          {view === 'predict' && (
-            <motion.div key="predict" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="max-w-2xl mx-auto">
               {isDeadlinePassed ? (
                 <div className="f1-card p-16 text-center space-y-8">
                   <div className="w-24 h-24 bg-primary/10 text-primary rounded-3xl flex items-center justify-center mx-auto border border-primary/20 shadow-2xl">
@@ -509,19 +528,17 @@ export default function Index() {
                   })()}
                 </form>
               )}
-            </motion.div>
-          )}
+            
+            </div>
+            {/* radio */}
+            <div className="w-1/5 flex-shrink-0 min-w-0 space-y-8 sm:space-y-12">
 
-          {/* ── TEAM RADIO ── */}
-          {view === 'radio' && (
-            <motion.div key="radio" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
               <TeamRadio user={user} />
-            </motion.div>
-          )}
+            
+            </div>
+            {/* admin */}
+            <div className="w-1/5 flex-shrink-0 min-w-0 space-y-8 sm:space-y-12">
 
-          {/* ── ADMIN ── */}
-          {view === 'admin' && (
-            <motion.div key="admin" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="max-w-3xl mx-auto">
               <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
                 {/* Colonna sinistra: classifica TV */}
                 <div className="space-y-4">
@@ -717,9 +734,11 @@ export default function Index() {
               )}
                 </div>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            
+            </div>
+          </div>
+        </div>
+
       </main>
     </div>
   );
