@@ -79,16 +79,19 @@ export function ClassificationEditor({ gpId, value, onChange }: Props) {
       const fastestLapDriver = results.find((r: any) => r.FastestLap?.rank === '1');
 
       const newRows: DriverResult[] = results.map((r: any, idx: number) => {
-        // Doppiati: status è "+N Lap/Laps" — non sono DNF
-        const isLapped = /^\+\d+ Lap/.test(r.status);
-        const isDns = r.status === 'Did not start' || r.grid === '0';
-        const isDnf = !isDns && !isLapped && r.status !== 'Finished';
+        // positionText: numero = classificato, R = ritirato, W = DNS/withdrawn
+        const posText = String(r.positionText || '');
+        const isClassified = /^\d+$/.test(posText);
+        const isDns = posText === 'W' || r.status === 'Did not start';
+        const isDnf = !isClassified && !isDns;
+        // Doppiati = classificati ma non Finished
+        const isLapped = isClassified && r.status !== 'Finished';
 
         let gap = '';
         if (idx === 0) gap = 'WINNER';
         else if (isDns) gap = 'DNS';
         else if (isDnf) gap = 'DNF';
-        else if (isLapped) gap = r.status.toUpperCase().replace('LAPS', 'LAPS').replace('LAP', 'LAP'); // es. "+1 LAP"
+        else if (isLapped) gap = /^\+\d+ Lap/.test(r.status) ? r.status : '+1 LAP';
         else if (r.Time?.time) gap = '+' + r.Time.time;
         else gap = r.status || '—';
 
