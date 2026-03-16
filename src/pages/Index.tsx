@@ -41,6 +41,7 @@ export default function Index() {
   const [results, setResults] = useState<Result[]>([]);
   const [seasonStats, setSeasonStats] = useState<SeasonStats | null>(null);
   const [view, setView] = useState<'dashboard' | 'predict' | 'stats' | 'admin' | 'radio'>('dashboard');
+  const TAB_ORDER = ['dashboard', 'stats', 'predict', 'radio', 'admin'] as const;
   const [user, setUser] = useState<{ team_id: string; team_name: string } | null>(null);
   const [isPredicting, setIsPredicting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,6 +49,7 @@ export default function Index() {
   const [adminPw, setAdminPw] = useState('');
   const [isFetching, setIsFetching] = useState(false);
   const isFetchingRef = useRef(false); // ref per evitare stale closure nel useEffect
+  const touchStartX = useRef<number | null>(null);
   const [fetchStatus, setFetchStatus] = useState<'idle'|'ok'|'error'>('idle');
   const [fetchError, setFetchError] = useState<string>('');
   const [classification, setClassification] = useState<DriverResult[]>([]);
@@ -252,7 +254,19 @@ export default function Index() {
     <div className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground pb-20">
       <Header user={user} onLogout={handleLogout} />
 
-      <main className="max-w-7xl mx-auto px-4 py-6 sm:py-12 space-y-8 sm:space-y-12">
+      <main
+        className="max-w-7xl mx-auto px-4 py-6 sm:py-12 space-y-8 sm:space-y-12"
+        onTouchStart={e => { touchStartX.current = e.touches[0].clientX; }}
+        onTouchEnd={e => {
+          if (touchStartX.current === null) return;
+          const diff = touchStartX.current - e.changedTouches[0].clientX;
+          if (Math.abs(diff) < 60) return; // soglia minima 60px
+          const idx = TAB_ORDER.indexOf(view as any);
+          if (diff > 0 && idx < TAB_ORDER.length - 1) setView(TAB_ORDER[idx + 1]); // swipe left → avanti
+          else if (diff < 0 && idx > 0) setView(TAB_ORDER[idx - 1]); // swipe right → indietro
+          touchStartX.current = null;
+        }}
+      >
         {/* Tab Navigation */}
         <div className="flex justify-start sm:justify-center overflow-x-auto pb-4 sm:pb-0 px-1 sm:px-0">
           <div className="inline-flex p-1 bg-white/5 rounded-2xl sm:rounded-3xl border border-white/5 backdrop-blur-xl shadow-2xl">
@@ -357,33 +371,41 @@ export default function Index() {
                     <h3 className="text-xs font-black uppercase tracking-[0.4em] text-white/20 whitespace-nowrap">Team Predictions</h3>
                     <div className="h-[1px] w-full bg-white/5" />
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+                  {/* Mobile: compact horizontal row | Desktop: 3 col grid */}
+                  <div className="grid grid-cols-3 md:grid-cols-3 gap-2 sm:gap-8">
                     {['CL', 'ML', 'FL'].map(teamName => {
                       const pred = predictions.find(p => p.team_name === teamName && p.gp_id === selectedGp?.id);
                       return (
-                        <div key={teamName} className="f1-card p-6 sm:p-8 space-y-6 sm:space-y-8 relative group border-t-4 border-t-transparent hover:border-t-primary transition-all">
+                        <div key={teamName} className="f1-card p-3 sm:p-8 space-y-2 sm:space-y-8 relative group border-t-4 border-t-transparent hover:border-t-primary transition-all">
+                          {/* Header */}
                           <div className="flex items-center justify-between">
-                            <span className="font-black italic text-lg sm:text-xl tracking-tighter uppercase">Team {teamName}</span>
+                            <span className="font-black italic text-sm sm:text-xl tracking-tighter uppercase">Team {teamName}</span>
                             {pred && (
-                              <button onClick={() => copyToWhatsApp(pred)} className="p-2 sm:p-2.5 bg-green-500/10 text-green-500 rounded-xl hover:bg-green-500 hover:text-white transition-all" title="Share to WhatsApp">
+                              <button onClick={() => copyToWhatsApp(pred)} className="hidden sm:flex p-2 sm:p-2.5 bg-green-500/10 text-green-500 rounded-xl hover:bg-green-500 hover:text-white transition-all" title="Share to WhatsApp">
                                 <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                               </button>
                             )}
                           </div>
                           {pred ? (
-                            <div className="space-y-3 sm:space-y-4">
+                            <div className="space-y-1.5 sm:space-y-4">
                               {[1, 2, 3].map(pos => (
-                                <div key={pos} className="flex items-center gap-3 sm:gap-4 p-2.5 sm:p-3 bg-white/[0.02] rounded-xl sm:rounded-2xl border border-white/5">
-                                  <span className={`w-7 h-7 sm:w-8 sm:h-8 ${pos === 1 ? 'bg-yellow-500' : pos === 2 ? 'bg-zinc-400' : 'bg-orange-600'} text-black text-[8px] sm:text-[10px] font-black italic rounded-lg flex items-center justify-center shadow-lg`}>{pos}</span>
-                                  <span className="font-black italic uppercase text-xs sm:text-sm tracking-tight">{(pred as any)[`p${pos}`]}</span>
+                                <div key={pos} className="flex items-center gap-1.5 sm:gap-4 p-1.5 sm:p-3 bg-white/[0.02] rounded-lg sm:rounded-2xl border border-white/5">
+                                  <span className={`w-5 h-5 sm:w-8 sm:h-8 flex-shrink-0 ${pos === 1 ? 'bg-yellow-500' : pos === 2 ? 'bg-zinc-400' : 'bg-orange-600'} text-black text-[7px] sm:text-[10px] font-black italic rounded-md sm:rounded-lg flex items-center justify-center`}>{pos}</span>
+                                  <span className="font-black italic uppercase text-[9px] sm:text-sm tracking-tight truncate">{(pred as any)[`p${pos}`]}</span>
                                 </div>
                               ))}
                             </div>
                           ) : (
-                            <div className="h-32 sm:h-40 flex flex-col items-center justify-center text-white/5 space-y-3">
-                              <ShieldAlert className="w-8 h-8 sm:w-10 sm:h-10 opacity-10" />
-                              <span className="text-[8px] sm:text-[10px] uppercase font-black tracking-widest italic">No Prediction</span>
+                            <div className="h-20 sm:h-40 flex flex-col items-center justify-center text-white/5 space-y-1 sm:space-y-3">
+                              <ShieldAlert className="w-5 h-5 sm:w-10 sm:h-10 opacity-10" />
+                              <span className="text-[7px] sm:text-[10px] uppercase font-black tracking-widest italic text-center">No Prediction</span>
                             </div>
+                          )}
+                          {/* Mobile WhatsApp button sotto */}
+                          {pred && (
+                            <button onClick={() => copyToWhatsApp(pred)} className="sm:hidden w-full flex items-center justify-center gap-1 py-1.5 bg-green-500/10 text-green-500 rounded-lg text-[8px] font-black uppercase tracking-widest">
+                              <MessageCircle className="w-3 h-3" /> Invia
+                            </button>
                           )}
                         </div>
                       );
