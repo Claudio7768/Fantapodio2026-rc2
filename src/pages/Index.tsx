@@ -551,215 +551,22 @@ export default function Index() {
                   })()}
                 </form>
               )}
-            
-            </div>
-            {/* radio */}
-            <div className="w-1/5 flex-shrink-0 min-w-0 space-y-8 sm:space-y-12">
-
-              <TeamRadio user={user} onUnread={n => { if (view !== 'radio') setUnreadRadio(n); }} />
-            
-            </div>
-            {/* admin */}
-            <div className="w-1/5 flex-shrink-0 min-w-0 space-y-8 sm:space-y-12">
-
-              <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
-                {/* Colonna sinistra: classifica TV */}
-                <div className="space-y-4">
-                  {/* Selettore GP nella colonna sinistra */}
-                  <div className="f1-card p-4 space-y-3">
-                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/20">Grand Prix</p>
-                    <select
-                      className="f1-input text-xs py-2 italic uppercase appearance-none"
-                      value={selectedGp?.id || ''}
-                      onChange={e => {
-                        const gp = gps.find(g => g.id === e.target.value);
-                        if (gp) {
-                          setSelectedGp(gp);
-                          setFetchStatus('idle');
-                          setClassification([]);
-                          setResP1(''); setResP2(''); setResP3('');
-                          setDnfs(''); setRimonte('');
-                          if (gp.completed) setTimeout(() => fetchFromOpenF1(gp.id), 0);
-                        }
-                      }}
-                    >
-                      {gps.map(g => (
-                        <option key={g.id} value={g.id} style={{ backgroundColor: '#1a1a1e' }}>
-                          {g.completed ? '✓ ' : ''}{g.name.replace(' Grand Prix', '')}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <RaceClassification
-                    classification={classification}
-                    gpName={selectedGp?.name || ''}
-                    loading={isFetching}
-                  />
-                </div>
-
-                {/* Colonna destra: form admin */}
-                <div>
-              {!adminUnlocked ? (
-                /* Password gate */
-                <div className="f1-card p-12 sm:p-16 flex flex-col items-center gap-8 text-center">
-                  <div className="w-20 h-20 bg-primary/10 border border-primary/20 rounded-3xl flex items-center justify-center shadow-2xl">
-                    <ShieldAlert className="w-10 h-10 text-primary" />
-                  </div>
-                  <div className="space-y-2">
-                    <h2 className="text-3xl font-black italic uppercase tracking-tighter">Race Control</h2>
-                    <p className="text-white/20 text-[10px] uppercase tracking-[0.3em] font-bold">Accesso riservato</p>
-                  </div>
-                  <form
-                    onSubmit={e => {
-                      e.preventDefault();
-                      if (adminPw === 'FANTAPODIO2026') {
-                        setAdminUnlocked(true);
-                        setAdminPw('');
-                      } else {
-                        alert('Password errata.');
-                        setAdminPw('');
-                      }
-                    }}
-                    className="w-full max-w-xs space-y-4"
-                  >
-                    <input
-                      required
-                      type="password"
-                      value={adminPw}
-                      onChange={e => setAdminPw(e.target.value)}
-                      placeholder="Password..."
-                      className="f1-input text-center tracking-widest"
-                      autoFocus
-                    />
-                    <button type="submit" className="f1-button w-full py-4">
-                      <CheckCircle2 className="w-5 h-5" /> Unlock
-                    </button>
-                  </form>
-                </div>
-              ) : (
-                /* Admin form */
-                <form onSubmit={handleSaveResult} className="f1-card p-6 sm:p-12 space-y-8 sm:space-y-12">
-                  <div className="flex flex-col sm:flex-row items-start justify-between gap-6">
-                    <div className="space-y-2">
-                      <h2 className="text-2xl sm:text-4xl font-black italic uppercase tracking-tighter flex items-center gap-3 sm:gap-4">
-                        <ShieldAlert className="w-8 h-8 sm:w-10 sm:h-10 text-primary" /> Race Control
-                      </h2>
-                      <p className="text-white/20 text-[8px] sm:text-[10px] uppercase tracking-[0.3em] font-bold">Official Classification: {selectedGp?.name}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end gap-4">
-                    <button type="button" onClick={() => setAdminUnlocked(false)} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/20 hover:text-white transition-colors">
-                      <AlertCircle className="w-4 h-4" /> Lock
-                    </button>
-                    <button type="button" onClick={handleResetApp} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary hover:text-white transition-colors">
-                      <AlertCircle className="w-4 h-4" /> Reset App
-                    </button>
-                  </div>
-
-                  {/* Fetch automatico da OpenF1 */}
-                  <div className="flex items-center gap-4 p-4 bg-white/[0.03] border border-white/5 rounded-2xl">
-                    <div className="flex-1">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-white/30">Auto-fetch OpenF1</p>
-                      <p className="text-[9px] text-white/15 font-bold mt-0.5">Recupera P1/P2/P3, DNF e rimonte dalla classifica ufficiale</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={fetchFromOpenF1}
-                      disabled={isFetching || !selectedGp}
-                      className={`flex items-center gap-2 px-5 py-3 rounded-xl text-[10px] font-black italic uppercase tracking-widest transition-all ${
-                        isFetching ? 'bg-white/10 text-white/30 cursor-wait' :
-                        fetchStatus === 'ok' ? 'bg-green-600/30 text-green-400 border border-green-600/30' :
-                        fetchStatus === 'error' ? 'bg-red-600/20 text-red-400 border border-red-600/20' :
-                        'bg-primary/20 text-primary border border-primary/20 hover:bg-primary hover:text-white'
-                      }`}
-                    >
-                      {isFetching ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : fetchStatus === 'ok' ? (
-                        <CheckCircle2 className="w-4 h-4" />
-                      ) : (
-                        <Search className="w-4 h-4" />
-                      )}
-                      {isFetching ? 'Fetching...' : fetchStatus === 'ok' ? 'Loaded!' : fetchStatus === 'error' ? 'Error — retry' : 'Fetch Results'}
-                    </button>
-                  </div>
-                  {fetchStatus === 'error' && fetchError && (
-                    <div className="px-4 py-2 bg-red-900/20 border border-red-500/20 rounded-xl">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-red-400">Errore fetch</p>
-                      <p className="text-[9px] text-red-300/70 mt-0.5 font-mono break-all">{fetchError}</p>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    {[1, 2, 3].map(pos => (
-                      <div key={pos} className="space-y-3">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-white/20">P{pos} Result</label>
-                        <select
-                          required
-                          className="f1-input py-3 italic uppercase appearance-none"
-                          value={pos === 1 ? resP1 : pos === 2 ? resP2 : resP3}
-                          onChange={e => pos === 1 ? setResP1(e.target.value) : pos === 2 ? setResP2(e.target.value) : setResP3(e.target.value)}
-                        >
-                          <option value="" style={{ backgroundColor: '#1a1a1e' }}>Seleziona Pilota</option>
-                          {DRIVERS.filter(d => {
-                            if (pos === 1) return d.name !== resP2 && d.name !== resP3;
-                            if (pos === 2) return d.name !== resP1 && d.name !== resP3;
-                            return d.name !== resP1 && d.name !== resP2;
-                          }).map(d => (
-                            <option key={d.number} value={d.name} style={{ backgroundColor: '#1a1a1e' }}>{d.number} - {d.name} ({d.team})</option>
-                          ))}
-                        </select>
+            te/30 rounded-full" />
+                              <ButtonCountdown targetDate={selectedGp.start_time} />
+                            </div>
+                          )}
+                        </button>
+                        {remaining === 0 && (
+                          <p className="text-center text-[10px] text-primary font-black uppercase tracking-widest italic animate-pulse">
+                            Maximum of 3 attempts reached for this Grand Prix
+                          </p>
+                        )}
                       </div>
-                    ))}
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                    <div className="space-y-3">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-white/20">Retirements (DNF)</label>
-                      <input value={dnfs} onChange={e => setDnfs(e.target.value)} placeholder="Verstappen, Hamilton..." className="f1-input" />
-                    </div>
-                    <div className="space-y-3">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-white/20">FIA Penalties</label>
-                      <input value={penalties} onChange={e => setPenalties(e.target.value)} placeholder="Perez, Alonso..." className="f1-input" />
-                    </div>
-                    <div className="md:col-span-2 space-y-3">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-white/20">Rimonte Killer (Started 11th+ → Top 10)</label>
-                      <input value={rimonte} onChange={e => setRimonte(e.target.value)} placeholder="Norris, Bearman..." className="f1-input" />
-                    </div>
-                  </div>
-
-                  {/* Editor classifica completa */}
-                  <div className="space-y-3 pt-2 border-t border-white/5">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-white/30">Classifica completa</p>
-                    <ClassificationEditor
-                      gpId={selectedGp?.id || ''}
-                      value={classificationDraft}
-                      onChange={(rows) => {
-                        setClassificationDraft(rows);
-                        // Auto-popola p1/p2/p3 dai primi classificati non-DNF
-                        const finishers = rows.filter(r => !r.dnf).sort((a, b) => a.pos - b.pos);
-                        if (finishers[0]) setResP1(finishers[0].name);
-                        if (finishers[1]) setResP2(finishers[1].name);
-                        if (finishers[2]) setResP3(finishers[2].name);
-                        // Auto-popola DNF
-                        const dnfList = rows.filter(r => r.dnf).map(r => r.name);
-                        if (dnfList.length > 0) setDnfs(dnfList.join(', '));
-                        // Auto-popola rimonte (partito 11°+ arrivato top10)
-                        const rimontaList = rows.filter(r => !r.dnf && r.pos <= 10 && r.startPos >= 11).map(r => r.name);
-                        if (rimontaList.length > 0) setRimonte(rimontaList.join(', '));
-                      }}
-                    />
-                  </div>
-
-                  <button type="submit" className="f1-button w-full py-6 text-xl">Publish Official Results</button>
+                    );
+                  })()}
                 </form>
               )}
-                </div>
-              </div>
             
-            </div>
-          
               </motion.div>
             )}
             {view === 'radio' && (
