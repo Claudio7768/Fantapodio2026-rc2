@@ -20,8 +20,7 @@ import {
   loginTeam, registerTeam, submitPrediction, submitResult,
   getSeasonStats, resetApp,
 } from '@/lib/store';
-import { fetchRaceResults } from '@/lib/openf1';
-import type { DriverResult } from '@/lib/openf1';
+import { fetchRaceResults, type DriverResult } from '@/lib/openf1';
 import { RaceClassification } from '@/components/RaceClassification';
 import { TeamRadio } from '@/components/TeamRadio';
 import { ClassificationEditor } from '@/components/ClassificationEditor';
@@ -52,7 +51,6 @@ export default function Index() {
   const [isFetching, setIsFetching] = useState(false);
   const isFetchingRef = useRef(false); // ref per evitare stale closure nel useEffect
   const touchStartX = useRef<number | null>(null);
-  const swipeContainerRef = useRef<HTMLDivElement>(null);
   const [fetchStatus, setFetchStatus] = useState<'idle'|'ok'|'error'>('idle');
   const [fetchError, setFetchError] = useState<string>('');
   const [classification, setClassification] = useState<DriverResult[]>([]);
