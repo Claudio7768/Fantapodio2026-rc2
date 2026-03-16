@@ -548,21 +548,6 @@ export default function Index() {
                   })()}
                 </form>
               )}
-            te/30 rounded-full" />
-                              <ButtonCountdown targetDate={selectedGp.start_time} />
-                            </div>
-                          )}
-                        </button>
-                        {remaining === 0 && (
-                          <p className="text-center text-[10px] text-primary font-black uppercase tracking-widest italic animate-pulse">
-                            Maximum of 3 attempts reached for this Grand Prix
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </form>
-              )}
             
               </motion.div>
             )}
