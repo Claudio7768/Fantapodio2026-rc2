@@ -20,6 +20,7 @@ import {
   loginTeam, registerTeam, submitPrediction, submitResult,
   getSeasonStats, resetApp,
 } from '@/lib/store';
+import { supabase } from '@/integrations/supabase/client';
 import { fetchRaceResults, type DriverResult } from '@/lib/openf1';
 import { RaceClassification } from '@/components/RaceClassification';
 import { TeamRadio } from '@/components/TeamRadio';
@@ -228,6 +229,24 @@ export default function Index() {
       isFetchingRef.current = false;
     }
   };
+
+  // Badge non letti — subscription separato in Index.tsx
+  // così funziona anche quando TeamRadio non è montato
+  useEffect(() => {
+    const ch = supabase.channel('index-radio-badge')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, p => {
+        const msg = p.new as { team_id: string; created_at: string };
+        // Solo messaggi degli altri team, solo quando non siamo sul tab Radio
+        if (msg.team_id !== user?.team_id) {
+          const lastSeen = localStorage.getItem('fp_radio_last_seen') || '';
+          if (!lastSeen || msg.created_at > lastSeen) {
+            setUnreadRadio(prev => prev + 1);
+          }
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user]);
 
   const copyToWhatsApp = (pred: Prediction) => {
     const text = `🏁 FANTAPODIO 2026 🏁\nTeam ${pred.team_name} - GP ${selectedGp?.name}\n\n1. ${pred.p1}\n2. ${pred.p2}\n3. ${pred.p3}`;
