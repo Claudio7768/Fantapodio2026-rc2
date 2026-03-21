@@ -23,6 +23,8 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { fetchRaceResults, type DriverResult } from '@/lib/openf1';
 import { RaceClassification } from '@/components/RaceClassification';
+import { PredictionHistory } from '@/components/PredictionHistory';
+import { ScorePreview } from '@/components/ScorePreview';
 import { TeamRadio } from '@/components/TeamRadio';
 import { ClassificationEditor } from '@/components/ClassificationEditor';
 
@@ -59,6 +61,8 @@ export default function Index() {
   const [classification, setClassification] = useState<DriverResult[]>([]);
   const [unreadRadio, setUnreadRadio] = useState(0);
   const [classificationDraft, setClassificationDraft] = useState<DriverResult[]>([]);
+  const [showScorePreview, setShowScorePreview] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   const [p1, setP1] = useState('');
   const [p2, setP2] = useState('');
@@ -171,6 +175,13 @@ export default function Index() {
   const handleSaveResult = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedGp || !resP1 || !resP2 || !resP3) return;
+    // Mostra preview punteggi prima di pubblicare
+    setShowScorePreview(true);
+  };
+
+  const handleConfirmPublish = async () => {
+    if (!selectedGp) return;
+    setIsPublishing(true);
     await submitResult(
       selectedGp.id, resP1, resP2, resP3,
       dnfs.split(',').map(s => s.trim()).filter(Boolean),
@@ -180,8 +191,9 @@ export default function Index() {
     );
     setClassification(classificationDraft);
     await refreshData(selectedGp);
+    setShowScorePreview(false);
+    setIsPublishing(false);
     setView('dashboard');
-    alert('Risultati salvati e punteggi aggiornati!');
   };
 
   const handleResetApp = async () => {
@@ -475,9 +487,21 @@ export default function Index() {
 
               >
 
-              <SeasonalStats stats={seasonStats} />
-            
-            
+              <div className="space-y-8">
+                <SeasonalStats stats={seasonStats} />
+                <div className="space-y-4">
+                  <div className="flex items-center gap-6">
+                    <h3 className="text-xs font-black uppercase tracking-[0.4em] text-white/20 whitespace-nowrap">Storico Pronostici</h3>
+                    <div className="h-[1px] w-full bg-white/5" />
+                  </div>
+                  <PredictionHistory
+                    gps={gps}
+                    predictions={predictions}
+                    results={results}
+                    currentTeamId={user?.team_id || ''}
+                  />
+                </div>
+              </div>
               </motion.div>
             )}
             {view === 'predict' && (
@@ -804,6 +828,23 @@ export default function Index() {
             )}
           </AnimatePresence>
         </div>
+
+      {/* Score Preview Modal */}
+      {showScorePreview && selectedGp && (
+        <ScorePreview
+          predictions={predictions}
+          gpId={selectedGp.id}
+          result={{
+            p1: resP1, p2: resP2, p3: resP3,
+            dnf: dnfs.split(',').map(s => s.trim()).filter(Boolean),
+            penalties: penalties.split(',').map(s => s.trim()).filter(Boolean),
+            rimonta: rimonte,
+          }}
+          onConfirm={handleConfirmPublish}
+          onCancel={() => setShowScorePreview(false)}
+          isSubmitting={isPublishing}
+        />
+      )}
 
       </main>
     </div>
