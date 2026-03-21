@@ -20,6 +20,7 @@ function enrichGP(row: any): GP {
   const meta = GP_META[row.id] || { start_time: `${row.date}T13:00:00Z`, location: row.circuit || '' };
   // fallback su INITIAL_GPS: se DB ha completed=false ma la costante dice true, usa true
   const initialCompleted = INITIAL_GPS.find(g => g.id === row.id)?.completed ?? false;
+  const initialGP = INITIAL_GPS.find(g => g.id === row.id);
   return {
     id: row.id,
     name: row.name,
@@ -27,6 +28,7 @@ function enrichGP(row: any): GP {
     date: row.date || '',
     start_time: meta.start_time,
     completed: !!row.completed || initialCompleted,
+    cancelled: initialGP?.cancelled ?? false,
   };
 }
 
@@ -172,12 +174,13 @@ export async function submitResult(
   p3: string,
   dnfs: string[],
   penalties: string[],
-  rimonte: string[]
+  rimonte: string[],
+  classification: any[] = []
 ): Promise<{ success: boolean; error?: string }> {
   const { error } = await supabase
     .from('results')
     .upsert(
-      { gp_id: gpId, p1, p2, p3, dnf: dnfs, penalties, rimonta: rimonte.join(', ') },
+      { gp_id: gpId, p1, p2, p3, dnf: dnfs, penalties, rimonta: rimonte.join(', '), classification },
       { onConflict: 'gp_id' }
     );
 

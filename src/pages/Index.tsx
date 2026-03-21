@@ -43,6 +43,7 @@ export default function Index() {
   const [view, setView] = useState<'dashboard' | 'predict' | 'stats' | 'admin' | 'radio'>('dashboard');
   const TAB_ORDER: Array<'dashboard' | 'stats' | 'predict' | 'radio' | 'admin'> = ['dashboard', 'stats', 'predict', 'radio', 'admin'];
   const viewIndex = TAB_ORDER.indexOf(view as any);
+  useEffect(() => { viewRef.current = view; }, [view]);
   const [slideDir, setSlideDir] = useState<1 | -1>(1); // 1=sinistra, -1=destra
   const [user, setUser] = useState<{ team_id: string; team_name: string } | null>(null);
   const [isPredicting, setIsPredicting] = useState(false);
@@ -52,6 +53,7 @@ export default function Index() {
   const [isFetching, setIsFetching] = useState(false);
   const isFetchingRef = useRef(false); // ref per evitare stale closure nel useEffect
   const touchStartX = useRef<number | null>(null);
+  const viewRef = useRef<string>('dashboard'); // tiene traccia della view corrente senza stale closure
   const [fetchStatus, setFetchStatus] = useState<'idle'|'ok'|'error'>('idle');
   const [fetchError, setFetchError] = useState<string>('');
   const [classification, setClassification] = useState<DriverResult[]>([]);
@@ -230,18 +232,14 @@ export default function Index() {
     }
   };
 
-  // Badge non letti — subscription separato in Index.tsx
-  // così funziona anche quando TeamRadio non è montato
+  // Badge non letti — usa viewRef per evitare stale closure
   useEffect(() => {
     const ch = supabase.channel('index-radio-badge')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, p => {
         const msg = p.new as { team_id: string; created_at: string };
-        // Solo messaggi degli altri team, solo quando non siamo sul tab Radio
-        if (msg.team_id !== user?.team_id) {
-          const lastSeen = localStorage.getItem('fp_radio_last_seen') || '';
-          if (!lastSeen || msg.created_at > lastSeen) {
-            setUnreadRadio(prev => prev + 1);
-          }
+        // Incrementa solo se: messaggio di un altro team E non siamo sul tab Radio
+        if (msg.team_id !== user?.team_id && viewRef.current !== 'radio') {
+          setUnreadRadio(prev => prev + 1);
         }
       })
       .subscribe();
@@ -253,7 +251,7 @@ export default function Index() {
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
 
-  const isDeadlinePassed = selectedGp ? new Date() > new Date(selectedGp.start_time) : false;
+  const isDeadlinePassed = selectedGp ? (selectedGp.cancelled || new Date() > new Date(selectedGp.start_time)) : false;
   const nextGp = gps.find(g => !g.completed);
 
   if (isLoading) {
@@ -362,8 +360,12 @@ export default function Index() {
                   </div>
                   <div className="relative z-10 space-y-8 sm:space-y-10">
                     <div className="flex items-center gap-4">
-                      <span className={`px-3 sm:px-4 py-1 sm:py-1.5 text-[8px] sm:text-[10px] font-black italic uppercase tracking-widest rounded-full ${isDeadlinePassed ? 'bg-white/5 text-white/20' : 'bg-primary text-primary-foreground shadow-lg animate-pulse'}`}>
-                        {isDeadlinePassed ? 'Event Live / Ended' : 'Next Grand Prix'}
+                      <span className={`px-3 sm:px-4 py-1 sm:py-1.5 text-[8px] sm:text-[10px] font-black italic uppercase tracking-widest rounded-full ${
+                        selectedGp?.cancelled ? 'bg-red-500/20 text-red-400 border border-red-500/20' :
+                        isDeadlinePassed ? 'bg-white/5 text-white/20' :
+                        'bg-primary text-primary-foreground shadow-lg animate-pulse'
+                      }`}>
+                        {selectedGp?.cancelled ? '🚫 Gara Cancellata' : isDeadlinePassed ? 'Event Live / Ended' : 'Next Grand Prix'}
                       </span>
                       <div className="h-[1px] flex-1 bg-white/5" />
                     </div>
@@ -402,7 +404,7 @@ export default function Index() {
                         >
                           {gps.map(gp => (
                             <option key={gp.id} value={gp.id} style={{ backgroundColor: '#1a1a1e' }}>
-                              {gp.completed ? '🏁' : '📅'} {gp.name}
+                              {gp.cancelled ? '🚫' : gp.completed ? '🏁' : '📅'} {gp.name}{gp.cancelled ? ' — CANCELLATO' : ''}
                             </option>
                           ))}
                         </select>
@@ -494,8 +496,14 @@ export default function Index() {
                     <AlertCircle className="w-12 h-12" />
                   </div>
                   <div className="space-y-3">
-                    <h2 className="text-4xl font-black italic uppercase tracking-tighter">Pit Lane Closed</h2>
-                    <p className="text-white/20 text-sm max-w-xs mx-auto">The prediction window for this event has closed.</p>
+                    <h2 className="text-4xl font-black italic uppercase tracking-tighter">
+                      {selectedGp?.cancelled ? 'Gara Cancellata' : 'Pit Lane Closed'}
+                    </h2>
+                    <p className="text-white/20 text-sm max-w-xs mx-auto">
+                      {selectedGp?.cancelled
+                        ? 'Questo Gran Premio è stato cancellato dal calendario 2026.'
+                        : 'The prediction window for this event has closed.'}
+                    </p>
                   </div>
                   <button onClick={() => setView('dashboard')} className="f1-button px-12">Return to Paddock</button>
                 </div>
@@ -580,7 +588,7 @@ export default function Index() {
 
               >
 
-              <TeamRadio user={user} onUnread={n => { if (view !== 'radio') setUnreadRadio(n); }} />
+              <TeamRadio user={user} />
             
             
               </motion.div>
