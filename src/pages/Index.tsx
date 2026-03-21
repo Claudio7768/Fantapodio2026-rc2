@@ -304,7 +304,7 @@ export default function Index() {
                     setView(tab.id as any);
                     if (tab.id === 'radio') setUnreadRadio(0);
                     if (tab.id === 'admin') {
-                      const lastCompleted = [...gps].reverse().find(g => g.completed);
+                      const lastCompleted = [...gps].reverse().find(g => g.completed && !g.cancelled);
                       if (lastCompleted && (!selectedGp?.completed)) {
                         setSelectedGp(lastCompleted);
                         setClassification([]);
@@ -343,7 +343,7 @@ export default function Index() {
                 setView(next);
                 if (next === 'radio') setUnreadRadio(0);
                 if (next === 'admin') {
-                  const lastCompleted = [...gps].reverse().find(g => g.completed);
+                  const lastCompleted = [...gps].reverse().find(g => g.completed && !g.cancelled);
                   if (lastCompleted && (!selectedGp?.completed)) { setSelectedGp(lastCompleted); setClassification([]); }
                 }
               } else if (diff < 0 && idx > 0) {
@@ -648,7 +648,7 @@ export default function Index() {
                         }
                       }}
                     >
-                      {gps.map(g => (
+                      {gps.filter(g => !g.cancelled).map(g => (
                         <option key={g.id} value={g.id} style={{ backgroundColor: '#1a1a1e' }}>
                           {g.completed ? '✓ ' : ''}{g.name.replace(' Grand Prix', '')}
                         </option>
@@ -709,7 +709,7 @@ export default function Index() {
                       <h2 className="text-2xl sm:text-4xl font-black italic uppercase tracking-tighter flex items-center gap-3 sm:gap-4">
                         <ShieldAlert className="w-8 h-8 sm:w-10 sm:h-10 text-primary" /> Race Control
                       </h2>
-                      <p className="text-white/20 text-[8px] sm:text-[10px] uppercase tracking-[0.3em] font-bold">Official Classification: {selectedGp?.name}</p>
+                      <p className="text-white/20 text-[8px] sm:text-[10px] uppercase tracking-[0.3em] font-bold">Official Classification: {selectedGp?.name}{selectedGp?.cancelled ? " — 🚫 CANCELLATO" : ""}</p>
                     </div>
                   </div>
 
@@ -817,7 +817,7 @@ export default function Index() {
                     />
                   </div>
 
-                  <button type="submit" className="f1-button w-full py-6 text-xl">Publish Official Results</button>
+                  <button type="submit" disabled={selectedGp?.cancelled} className="f1-button w-full py-6 text-xl disabled:opacity-30 disabled:cursor-not-allowed">Publish Official Results</button>
                 </form>
               )}
                 </div>
