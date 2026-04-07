@@ -1,0 +1,29 @@
+name: Supabase DEV Keepalive
+
+on:
+  schedule:
+    # Ogni 5 giorni alle 08:00 UTC
+    - cron: '0 8 */5 * *'
+  workflow_dispatch: # Permette esecuzione manuale dal dashboard GitHub
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase DEV
+        run: |
+          echo "Pinging Supabase DEV to prevent auto-pause..."
+          
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+            "https://nwqyknzgqsairksmhzrd.supabase.co/rest/v1/gps?select=id&limit=1" \
+            -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im53cXlrbnpncXNhaXJrc21oenJkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMzcwMTEsImV4cCI6MjA4ODcxMzAxMX0.dAldCzg2mq1J7gS8ArYzMAqma677mzHFD5o4grBMKFY" \
+            -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im53cXlrbnpncXNhaXJrc21oenJkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMzcwMTEsImV4cCI6MjA4ODcxMzAxMX0.dAldCzg2mq1J7gS8ArYzMAqma677mzHFD5o4grBMKFY")
+          
+          echo "HTTP Status: $RESPONSE"
+          
+          if [ "$RESPONSE" = "200" ]; then
+            echo "✓ Supabase DEV is alive and responding"
+          else
+            echo "✗ Unexpected response: $RESPONSE"
+            exit 1
+          fi
