@@ -147,7 +147,7 @@ export default function Index() {
       await supabase.from('messages').insert({
         team_id: 'RC',
         team_name: 'RC',
-        text: '🏁 Benvenuti alla Release 2026! L'app è stata completamente rinnovata con swipe navigation, storico pronostici, Team Radio con reactions, classifiche live da Jolpica e molto altro. Buona stagione! 🏎️',
+        text: "🏁 Benvenuti alla Release 2026! L'app è stata completamente rinnovata con swipe navigation, storico pronostici, Team Radio con reactions, classifiche live da Jolpica e molto altro. Buona stagione! 🏎️",
       });
       localStorage.setItem(key, '1');
     };
