@@ -21,6 +21,7 @@ const TEAM_COLORS: Record<string, string> = {
   CL: 'hsl(1 96% 44%)',
   ML: 'hsl(32 100% 50%)',
   FL: 'hsl(174 100% 42%)',
+  RC: 'hsl(48 96% 53%)',   // Giallo direzione gara
 };
 
 const QUICK_REACTIONS = ['🏎️', '🏆', '💥', '😂', '👏'];
@@ -189,9 +190,10 @@ export function TeamRadio({ user, onUnread }: Props) {
 
           return (
             <div key={msg.id} className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
-              {showSender && !isOwn && (
-                <span className="text-[9px] font-black uppercase tracking-widest mb-1 ml-3" style={{ color }}>
-                  Team {msg.team_name}
+              {showSender && (!isOwn || msg.team_id === 'RC') && (
+                <span className={`text-[9px] font-black uppercase tracking-widest mb-1 ml-3 ${msg.team_id === 'RC' ? 'text-yellow-400' : ''}`}
+                  style={msg.team_id !== 'RC' ? { color } : {}}>
+                  {msg.team_id === 'RC' ? '🏁 Direzione Gara' : `Team ${msg.team_name}`}
                 </span>
               )}
 
@@ -205,9 +207,11 @@ export function TeamRadio({ user, onUnread }: Props) {
                   {/* Bolla messaggio */}
                   <div
                     className={`relative px-4 py-2.5 rounded-2xl text-sm font-medium leading-relaxed cursor-pointer select-none ${
-                      isOwn ? 'rounded-br-sm text-white' : 'rounded-bl-sm bg-white/10 text-white/90'
+                      msg.team_id === 'RC'
+                        ? 'bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 rounded-bl-sm'
+                        : isOwn ? 'rounded-br-sm text-white' : 'rounded-bl-sm bg-white/10 text-white/90'
                     }`}
-                    style={isOwn ? { backgroundColor: color } : {}}
+                    style={isOwn && msg.team_id !== 'RC' ? { backgroundColor: color } : {}}
                     onClick={e => { e.stopPropagation(); setActiveReactionMsg(isPickerOpen ? null : msg.id); }}
                   >
                     {msg.text}
