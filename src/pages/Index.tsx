@@ -127,6 +127,33 @@ export default function Index() {
     }
   }, [selectedGp, user, predictions]);
 
+  // Invia messaggio Direzione Gara al primo login dopo la release
+  useEffect(() => {
+    if (!user) return;
+    const key = 'fp_release_2026_msg_sent';
+    if (localStorage.getItem(key)) return;
+    // Invia una sola volta per dispositivo
+    const send = async () => {
+      const { data: existing } = await supabase
+        .from('messages')
+        .select('id')
+        .eq('team_id', 'RC')
+        .ilike('text', '%Release 2026%')
+        .limit(1);
+      if (existing && existing.length > 0) {
+        localStorage.setItem(key, '1');
+        return; // già inviato da un altro dispositivo
+      }
+      await supabase.from('messages').insert({
+        team_id: 'RC',
+        team_name: 'RC',
+        text: "🏁 Benvenuti alla Release 2026! L'app è stata completamente rinnovata con swipe navigation, storico pronostici, Team Radio con reactions, classifiche live da Jolpica e molto altro. Buona stagione! 🏎️",
+      });
+      localStorage.setItem(key, '1');
+    };
+    send();
+  }, [user]);
+
   // Auto-fetch quando si apre Race Control con un GP completato E sono passate 24h
   // Usa isFetchingRef (non state) per evitare stale closure
   useEffect(() => {
@@ -671,6 +698,40 @@ export default function Index() {
 
                 {/* Colonna destra: form admin */}
                 <div>
+              {/* Messaggi Direzione Gara */}
+              {adminUnlocked && (
+                <div className="f1-card p-4 space-y-3 border border-yellow-500/20">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-yellow-400">
+                    🏁 Messaggio Direzione Gara
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      id="rc-msg-input"
+                      placeholder="Scrivi un messaggio ufficiale..."
+                      maxLength={300}
+                      className="f1-input flex-1 py-2 text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const input = document.getElementById('rc-msg-input') as HTMLInputElement;
+                        const text = input?.value?.trim();
+                        if (!text) return;
+                        await supabase.from('messages').insert({
+                          team_id: 'RC', team_name: 'RC', text,
+                        });
+                        input.value = '';
+                        showToast('Messaggio inviato dalla Direzione Gara 🏁');
+                      }}
+                      className="px-4 py-2 rounded-xl bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 text-[10px] font-black uppercase tracking-widest hover:bg-yellow-500/30 transition-all flex-shrink-0"
+                    >
+                      Invia
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Sync automatico — appare solo se ci sono GP da sincronizzare */}
               <JolpicaSync gps={gps} onSynced={() => refreshData(selectedGp)} />
 
