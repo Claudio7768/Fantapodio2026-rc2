@@ -27,6 +27,7 @@ import { PredictionHistory } from '@/components/PredictionHistory';
 import { ScorePreview } from '@/components/ScorePreview';
 import { TeamRadio } from '@/components/TeamRadio';
 import { ClassificationEditor } from '@/components/ClassificationEditor';
+import { JolpicaSync } from '@/components/JolpicaSync';
 
 // Controlla se sono trascorse almeno 24 ore dalla start_time del GP
 function isResultsAvailable(gp: { start_time: string } | null): boolean {
@@ -63,6 +64,12 @@ export default function Index() {
   const [classificationDraft, setClassificationDraft] = useState<DriverResult[]>([]);
   const [showScorePreview, setShowScorePreview] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [toast, setToast] = useState<{msg: string; type: 'ok'|'err'} | null>(null);
+
+  const showToast = (msg: string, type: 'ok'|'err' = 'ok') => {
+    setToast({msg, type});
+    setTimeout(() => setToast(null), 3500);
+  };
 
   const [p1, setP1] = useState('');
   const [p2, setP2] = useState('');
@@ -140,16 +147,16 @@ export default function Index() {
       setUser(result.user);
       await refreshData(selectedGp);
     } else {
-      alert(`Errore: ${result.error}`);
+      showToast(result.error || 'Errore', 'err');
     }
   };
 
   const handleRegister = async (name: string, password: string) => {
     const result = await registerTeam(name, password);
     if (result.success) {
-      alert('Registrazione completata! Ora puoi effettuare il login.');
+      showToast('Registrazione completata! Ora effettua il login.');
     } else {
-      alert(`Errore: ${result.error}`);
+      showToast(result.error || 'Errore', 'err');
     }
   };
 
@@ -165,9 +172,9 @@ export default function Index() {
     const result = await submitPrediction(selectedGp.id, user.team_id, p1, p2, p3);
     if (result.success) {
       await refreshData(selectedGp);
-      alert('Pronostico salvato con successo! 🏎️');
+      showToast('Pronostico salvato! 🏎️');
     } else {
-      alert(`Errore: ${result.error}`);
+      showToast(result.error || 'Errore', 'err');
     }
     setIsPredicting(false);
   };
@@ -205,9 +212,9 @@ export default function Index() {
         setUser(null);
         setCurrentUser(null);
         await refreshData();
-        alert('App resettata con successo!');
+        showToast('App resettata con successo!');
       } else {
-        alert('Password errata.');
+        showToast('Password errata.', 'err');
       }
     }
   };
@@ -664,6 +671,9 @@ export default function Index() {
 
                 {/* Colonna destra: form admin */}
                 <div>
+              {/* Sync automatico — appare solo se ci sono GP da sincronizzare */}
+              <JolpicaSync gps={gps} onSynced={() => refreshData(selectedGp)} />
+
               {!adminUnlocked ? (
                 /* Password gate */
                 <div className="f1-card p-12 sm:p-16 flex flex-col items-center gap-8 text-center">
@@ -681,7 +691,7 @@ export default function Index() {
                         setAdminUnlocked(true);
                         setAdminPw('');
                       } else {
-                        alert('Password errata.');
+                        showToast('Password errata.', 'err');
                         setAdminPw('');
                       }
                     }}
@@ -844,6 +854,15 @@ export default function Index() {
           onCancel={() => setShowScorePreview(false)}
           isSubmitting={isPublishing}
         />
+      )}
+
+      {/* Toast notification */}
+      {toast && (
+        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-2xl text-sm font-black italic uppercase tracking-widest shadow-2xl transition-all ${
+          toast.type === 'ok' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+        }`}>
+          {toast.msg}
+        </div>
       )}
 
       </main>
