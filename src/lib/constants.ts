@@ -12,6 +12,7 @@ export interface GP {
   date: string;
   start_time: string;
   completed: boolean;
+  cancelled?: boolean;
 }
 
 export interface Prediction {
@@ -96,8 +97,8 @@ export const INITIAL_GPS: GP[] = [
   { id: 'australia',  name: 'Australian Grand Prix',          location: 'Melbourne',   date: '2026-03-08', start_time: '2026-03-08T04:00:00Z', completed: true  },
   { id: 'china',      name: 'Chinese Grand Prix',             location: 'Shanghai',    date: '2026-03-15', start_time: '2026-03-15T07:00:00Z', completed: false },
   { id: 'japan',      name: 'Japanese Grand Prix',            location: 'Suzuka',      date: '2026-03-29', start_time: '2026-03-29T05:00:00Z', completed: false },
-  { id: 'bahrain',    name: 'Bahrain Grand Prix',             location: 'Sakhir',      date: '2026-04-12', start_time: '2026-04-12T14:00:00Z', completed: false },
-  { id: 'saudi',      name: 'Saudi Arabian Grand Prix',       location: 'Jeddah',      date: '2026-04-19', start_time: '2026-04-19T17:00:00Z', completed: false },
+  { id: 'bahrain',    name: 'Bahrain Grand Prix',             location: 'Sakhir',      date: '2026-04-12', start_time: '2026-04-12T14:00:00Z', completed: false, cancelled: true },
+  { id: 'saudi',      name: 'Saudi Arabian Grand Prix',       location: 'Jeddah',      date: '2026-04-19', start_time: '2026-04-19T17:00:00Z', completed: false, cancelled: true },
   { id: 'miami',      name: 'Miami Grand Prix',               location: 'Miami',       date: '2026-05-03', start_time: '2026-05-03T20:00:00Z', completed: false },
   { id: 'canada',     name: 'Canadian Grand Prix',            location: 'Montréal',    date: '2026-05-24', start_time: '2026-05-24T18:00:00Z', completed: false },
   { id: 'monaco',     name: 'Monaco Grand Prix',              location: 'Monaco',      date: '2026-06-07', start_time: '2026-06-07T13:00:00Z', completed: false },
