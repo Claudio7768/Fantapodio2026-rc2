@@ -28,6 +28,7 @@ import { ScorePreview } from '@/components/ScorePreview';
 import { TeamRadio } from '@/components/TeamRadio';
 import { ClassificationEditor } from '@/components/ClassificationEditor';
 import { JolpicaSync } from '@/components/JolpicaSync';
+import CircuitMap from '@/components/CircuitMap';
 
 // Controlla se sono trascorse almeno 24 ore dalla start_time del GP
 function isResultsAvailable(gp: { start_time: string } | null): boolean {
@@ -429,6 +430,15 @@ export default function Index() {
                           </div>
                         )}
                       </div>
+
+                      {/* Circuit Map */}
+                      {selectedGp && (
+                        <div className="flex justify-center sm:justify-end">
+                          <div className="w-36 h-24 sm:w-48 sm:h-32 opacity-60 hover:opacity-100 transition-opacity duration-500">
+                            <CircuitMap gpId={selectedGp.id} showLabel={false} />
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-10 pt-4 sm:pt-6">
                       <div className="space-y-2 sm:space-y-3">
