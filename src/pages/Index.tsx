@@ -431,11 +431,14 @@ export default function Index() {
                         )}
                       </div>
 
-                      {/* Circuit Map */}
-                      {selectedGp && (
-                        <div className="flex justify-center sm:justify-end">
-                          <div className="w-36 h-24 sm:w-48 sm:h-32 opacity-60 hover:opacity-100 transition-opacity duration-500">
-                            <CircuitMap gpId={selectedGp.id} showLabel={false} />
+                      {/* Circuit Map + Info */}
+                      {selectedGp && !selectedGp.cancelled && (
+                        <div className="flex items-start gap-4 mt-2">
+                          <div className="flex-shrink-0 w-28 h-20 sm:w-40 sm:h-28 opacity-70 hover:opacity-100 transition-opacity duration-500">
+                            <CircuitMap gpId={selectedGp.id} />
+                          </div>
+                          <div className="flex-1 pt-1">
+                            <CircuitMap gpId={selectedGp.id} showInfo={true} showLabel={false} />
                           </div>
                         </div>
                       )}
