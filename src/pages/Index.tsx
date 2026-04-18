@@ -431,13 +431,18 @@ export default function Index() {
                         )}
                       </div>
 
-                      {/* Circuit Map + Info */}
+                      {/* Circuit Map + Info — card separata, leggibile su desktop */}
                       {selectedGp && !selectedGp.cancelled && (
-                        <div className="flex items-start gap-4 mt-2">
-                          <div className="flex-shrink-0 w-28 h-20 sm:w-40 sm:h-28 opacity-70 hover:opacity-100 transition-opacity duration-500">
+                        <div className="mt-4 pt-4 border-t border-white/5 flex items-center gap-5 sm:gap-8">
+                          {/* Piantina */}
+                          <div className="flex-shrink-0 w-32 h-24 sm:w-44 sm:h-32 opacity-75 hover:opacity-100 transition-opacity duration-500">
                             <CircuitMap gpId={selectedGp.id} />
                           </div>
-                          <div className="flex-1 pt-1">
+                          {/* Dati tecnici */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/20 mb-2">
+                              Dati Tecnici
+                            </p>
                             <CircuitMap gpId={selectedGp.id} showInfo={true} showLabel={false} />
                           </div>
                         </div>
