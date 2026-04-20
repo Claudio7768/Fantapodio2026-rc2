@@ -104,7 +104,9 @@ export default function Index() {
 
     const gpToSelect = currentSelectedGp ?? null;
     if (!gpToSelect) {
-      const next = g.find(gp => !gp.completed && !gp.cancelled) || g[g.length - 1];
+      const next = g.find(gp => !gp.completed && !gp.cancelled && new Date(gp.start_time) > new Date())
+                || g.find(gp => !gp.completed && !gp.cancelled)
+                || g[g.length - 1];
       if (next) setSelectedGp(next);
     }
   };
@@ -298,7 +300,8 @@ export default function Index() {
   };
 
   const isDeadlinePassed = selectedGp ? (selectedGp.cancelled || new Date() > new Date(selectedGp.start_time)) : false;
-  const nextGp = gps.find(g => !g.completed && !g.cancelled);
+  const nextGp = gps.find(g => !g.completed && !g.cancelled && new Date(g.start_time) > new Date())
+              || gps.find(g => !g.completed && !g.cancelled);
 
   if (isLoading) {
     return (
