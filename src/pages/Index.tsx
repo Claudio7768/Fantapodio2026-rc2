@@ -28,7 +28,6 @@ import { ScorePreview } from '@/components/ScorePreview';
 import { TeamRadio } from '@/components/TeamRadio';
 import { ClassificationEditor } from '@/components/ClassificationEditor';
 import { JolpicaSync } from '@/components/JolpicaSync';
-import { PushToggle } from '@/components/PushToggle';
 import CircuitMap from '@/components/CircuitMap';
 
 // Controlla se sono trascorse almeno 24 ore dalla start_time del GP
@@ -526,7 +525,6 @@ export default function Index() {
               </div>
               <div className="space-y-10">
                 <Leaderboard teams={teams} />
-                {user && <PushToggle teamId={user.team_id} />}
                 <Rules />
               </div>
               </motion.div>
