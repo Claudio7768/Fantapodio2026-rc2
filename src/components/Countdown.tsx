@@ -43,9 +43,12 @@ export function Countdown({ targetDate }: { targetDate: string }) {
   const isUrgent = t.total < 3600000; // meno di 1 ora
   const isToday  = t.days === 0;
 
-  const units = t.days > 0
-    ? [{ v: t.days, l: 'GG' }, { v: t.hours, l: 'OO' }, { v: t.minutes, l: 'MM' }]
-    : [{ v: t.hours, l: 'OO' }, { v: t.minutes, l: 'MM' }, { v: t.seconds, l: 'SS' }];
+  const units = [
+    ...(t.days > 0 ? [{ v: t.days, l: 'GG' }] : []),
+    { v: t.hours, l: 'OO' },
+    { v: t.minutes, l: 'MM' },
+    { v: t.seconds, l: 'SS' },
+  ];
 
   return (
     <div className={`flex items-center gap-1 sm:gap-2 ${isUrgent ? 'animate-pulse' : ''}`}>
