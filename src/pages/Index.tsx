@@ -105,7 +105,9 @@ export default function Index() {
 
     const gpToSelect = currentSelectedGp ?? null;
     if (!gpToSelect) {
-      const next = g.find(gp => !gp.completed) || g[g.length - 1];
+      const next = g.find(gp => !gp.completed && !gp.cancelled && new Date(gp.start_time) > new Date())
+                || g.find(gp => !gp.completed && !gp.cancelled)
+                || g[g.length - 1];
       if (next) setSelectedGp(next);
     }
   };
@@ -299,7 +301,8 @@ export default function Index() {
   };
 
   const isDeadlinePassed = selectedGp ? (selectedGp.cancelled || new Date() > new Date(selectedGp.start_time)) : false;
-  const nextGp = gps.find(g => !g.completed);
+  const nextGp = gps.find(g => !g.completed && !g.cancelled && new Date(g.start_time) > new Date())
+              || gps.find(g => !g.completed && !g.cancelled);
 
   if (isLoading) {
     return (
@@ -424,7 +427,7 @@ export default function Index() {
                           <span className="hidden sm:block w-1.5 h-1.5 bg-primary rounded-full" />
                           <span>{selectedGp?.date}</span>
                         </div>
-                        {selectedGp && !selectedGp.completed && (
+                        {selectedGp && !selectedGp.completed && !selectedGp.cancelled && (
                           <div className="bg-black/20 p-2 rounded-2xl border border-white/5">
                             <Countdown targetDate={selectedGp.start_time} />
                           </div>
