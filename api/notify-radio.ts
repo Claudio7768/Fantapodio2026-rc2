@@ -1,3 +1,4 @@
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import webpush from 'web-push';
 import { createClient } from '@supabase/supabase-js';
 
@@ -7,48 +8,37 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY!
 );
 
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_KEY! // service key per leggere le subscriptions
-);
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'POST') return res.status(405).end('Method not allowed');
 
-export const config = { runtime: 'nodejs' };
+  const auth = req.headers['x-notify-secret'];
+  if (auth !== process.env.NOTIFY_SECRET) return res.status(401).end('Unauthorized');
 
-export default async function handler(req: Request) {
-  if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
+  const record = req.body?.record;
+  if (!record) return res.status(400).end('No record');
 
-  // Supabase webhook manda il secret come query param o header
-  const auth = req.headers.get('x-notify-secret');
-  if (auth !== process.env.NOTIFY_SECRET) return new Response('Unauthorized', { status: 401 });
+  const supabase = createClient(
+    process.env.VITE_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_KEY!
+  );
 
-  const body = await req.json();
-  // Payload Supabase webhook: { type: 'INSERT', record: { team_id, team_name, text, ... } }
-  const record = body.record;
-  if (!record) return new Response('No record', { status: 400 });
-
-  // Non notificare le proprie iscrizioni — invia a tutti
   const { data: subs } = await supabase
     .from('push_subscriptions')
     .select('subscription, team_id')
-    .neq('team_id', record.team_id); // non notifica chi ha scritto
+    .neq('team_id', record.team_id);
 
-  if (!subs?.length) return new Response(JSON.stringify({ sent: 0 }), { status: 200 });
+  if (!subs?.length) return res.json({ sent: 0 });
 
   const isRC = record.team_id === 'RC';
   const title = isRC ? '🏁 Direzione Gara' : `📻 Team Radio — ${record.team_name}`;
-  const bodyText = record.text.length > 80 ? record.text.slice(0, 80) + '…' : record.text;
+  const body  = record.text.length > 80 ? record.text.slice(0, 80) + '…' : record.text;
 
-  const payload = JSON.stringify({
-    title,
-    body: bodyText,
-    tag: 'radio-message',
-    requireInteraction: false,
-  });
+  const payload = JSON.stringify({ title, body, tag: 'radio-message', requireInteraction: false });
 
   const results = await Promise.allSettled(
-    subs.map(row => webpush.sendNotification(row.subscription as any, payload))
+    subs.map(row => webpush.sendNotification(row.subscription as webpush.PushSubscription, payload))
   );
 
   const sent = results.filter(r => r.status === 'fulfilled').length;
-  return new Response(JSON.stringify({ sent }), { status: 200 });
+  return res.json({ sent });
 }

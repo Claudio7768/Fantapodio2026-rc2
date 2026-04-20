@@ -1,3 +1,4 @@
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import webpush from 'web-push';
 
 webpush.setVapidDetails(
@@ -6,38 +7,24 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY!
 );
 
-export const config = { runtime: 'nodejs' };
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'POST') return res.status(405).end('Method not allowed');
 
-export default async function handler(req: Request) {
-  if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 });
-  }
+  const auth = req.headers['x-notify-secret'];
+  if (auth !== process.env.NOTIFY_SECRET) return res.status(401).end('Unauthorized');
 
-  // Verifica secret interno per sicurezza
-  const auth = req.headers.get('x-notify-secret');
-  if (auth !== process.env.NOTIFY_SECRET) {
-    return new Response('Unauthorized', { status: 401 });
-  }
-
-  const { subscriptions, title, body, tag, requireInteraction } = await req.json();
-
-  if (!subscriptions?.length) {
-    return new Response(JSON.stringify({ sent: 0 }), { status: 200 });
-  }
+  const { subscriptions, title, body, tag, requireInteraction } = req.body;
+  if (!subscriptions?.length) return res.json({ sent: 0 });
 
   const payload = JSON.stringify({ title, body, tag, requireInteraction });
 
   const results = await Promise.allSettled(
-    subscriptions.map((sub: PushSubscription) =>
-      webpush.sendNotification(sub as any, payload)
+    subscriptions.map((sub: webpush.PushSubscription) =>
+      webpush.sendNotification(sub, payload)
     )
   );
 
-  const sent = results.filter(r => r.status === 'fulfilled').length;
+  const sent   = results.filter(r => r.status === 'fulfilled').length;
   const failed = results.filter(r => r.status === 'rejected').length;
-
-  return new Response(JSON.stringify({ sent, failed }), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-  });
+  return res.json({ sent, failed });
 }
