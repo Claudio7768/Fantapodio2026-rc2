@@ -1,0 +1,106 @@
+name: GP 24h Reminder
+
+on:
+  schedule:
+    # Ogni giorno alle 08:00 UTC (= 10:00 ora italiana)
+    # Controlla se c'è una gara nelle prossime 24h
+    - cron: '0 8 * * *'
+  workflow_dispatch: # Permette esecuzione manuale dal dashboard GitHub
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check upcoming GPs and send Team Radio reminder
+        run: |
+          echo "=== GP 24h Reminder ==="
+          echo "Ora attuale UTC: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+
+          # ── Calendario GP 2026 (start_time in UTC) ───────────────────
+          # Australia/China/Japan già disputati — non inclusi
+          # Bahrain e Saudi cancellati — non inclusi
+          GP_DATA=(
+            "Miami Grand Prix|2026-05-03T20:00:00Z"
+            "Canadian Grand Prix|2026-05-24T18:00:00Z"
+            "Monaco Grand Prix|2026-06-07T13:00:00Z"
+            "Barcelona-Catalunya Grand Prix|2026-06-14T13:00:00Z"
+            "Austrian Grand Prix|2026-06-28T13:00:00Z"
+            "British Grand Prix|2026-07-05T14:00:00Z"
+            "Belgian Grand Prix|2026-07-19T13:00:00Z"
+            "Hungarian Grand Prix|2026-07-26T13:00:00Z"
+            "Dutch Grand Prix|2026-08-23T13:00:00Z"
+            "Italian Grand Prix|2026-09-06T13:00:00Z"
+            "Madrid Grand Prix|2026-09-13T13:00:00Z"
+            "Azerbaijan Grand Prix|2026-09-26T11:00:00Z"
+            "Singapore Grand Prix|2026-10-11T12:00:00Z"
+            "United States Grand Prix|2026-10-25T19:00:00Z"
+            "Mexico City Grand Prix|2026-11-01T20:00:00Z"
+            "Sao Paulo Grand Prix|2026-11-08T17:00:00Z"
+            "Las Vegas Grand Prix|2026-11-22T06:00:00Z"
+            "Qatar Grand Prix|2026-11-29T16:00:00Z"
+            "Abu Dhabi Grand Prix|2026-12-06T13:00:00Z"
+          )
+
+          NOW_EPOCH=$(date -u +%s)
+          # Finestra: da adesso fino a 24h — la gara deve essere nel futuro
+          WINDOW_END=$(( NOW_EPOCH + 86400 ))
+
+          FOUND_GP=""
+          FOUND_TIME=""
+
+          for entry in "${GP_DATA[@]}"; do
+            GP_NAME="${entry%%|*}"
+            GP_TIME="${entry##*|}"
+            GP_EPOCH=$(date -u -d "$GP_TIME" +%s 2>/dev/null)
+
+            if [ -z "$GP_EPOCH" ]; then
+              echo "WARN: impossibile parsare la data per $GP_NAME ($GP_TIME)"
+              continue
+            fi
+
+            # La gara deve essere nel futuro e nelle prossime 24h
+            if [ "$GP_EPOCH" -gt "$NOW_EPOCH" ] && [ "$GP_EPOCH" -le "$WINDOW_END" ]; then
+              FOUND_GP="$GP_NAME"
+              FOUND_TIME="$GP_TIME"
+              HOURS_LEFT=$(( (GP_EPOCH - NOW_EPOCH) / 3600 ))
+              echo "✓ GP trovato nelle prossime 24h: $GP_NAME alle $GP_TIME UTC (tra ~${HOURS_LEFT}h)"
+              break
+            fi
+          done
+
+          if [ -z "$FOUND_GP" ]; then
+            echo "Nessun GP nelle prossime 24h. Nulla da fare."
+            exit 0
+          fi
+
+          # ── Componi messaggio ─────────────────────────────────────────
+          GP_EPOCH=$(date -u -d "$FOUND_TIME" +%s)
+          HOURS_LEFT=$(( (GP_EPOCH - NOW_EPOCH) / 3600 ))
+          RACE_TIME_IT=$(TZ='Europe/Rome' date -d "$FOUND_TIME" '+%H:%M')
+
+          # Costruisci il testo senza caratteri problematici per JSON
+          MSG_TEXT="REMINDER: ${FOUND_GP} OGGI alle ${RACE_TIME_IT} ora italiana (tra circa ${HOURS_LEFT}h). Ultimi pronostici entro l'inizio gara!"
+
+          echo "Messaggio da inviare: $MSG_TEXT"
+
+          # ── Invia su Team Radio via Supabase REST API ─────────────────
+          PAYLOAD=$(printf '{"team_id":"RC","team_name":"RC","text":"%s"}' "$MSG_TEXT")
+
+          RESPONSE=$(curl -s -o /tmp/sb_response.json -w "%{http_code}" \
+            -X POST \
+            "${{ secrets.SUPABASE_URL }}/rest/v1/messages" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=minimal" \
+            -d "$PAYLOAD")
+
+          echo "HTTP Status: $RESPONSE"
+          cat /tmp/sb_response.json || true
+
+          if [ "$RESPONSE" = "201" ] || [ "$RESPONSE" = "200" ]; then
+            echo "✓ Reminder inviato su Team Radio!"
+          else
+            echo "✗ Errore Supabase (HTTP $RESPONSE)"
+            exit 1
+          fi
