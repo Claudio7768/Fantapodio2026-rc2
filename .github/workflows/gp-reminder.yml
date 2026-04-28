@@ -3,22 +3,21 @@ name: GP 24h Reminder
 on:
   schedule:
     # Ogni giorno alle 08:00 UTC (= 10:00 ora italiana)
-    # Controlla se c'è una gara nelle prossime 24h
     - cron: '0 8 * * *'
-  workflow_dispatch: # Permette esecuzione manuale dal dashboard GitHub
+  workflow_dispatch:
 
 jobs:
   remind:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Check upcoming GPs and send Team Radio reminder
+      # ── Step 1: Trova il GP nelle prossime 24h ──────────────────
+      - name: Find upcoming GP
+        id: find_gp
         run: |
           echo "=== GP 24h Reminder ==="
-          echo "Ora attuale UTC: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          echo "Ora UTC: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 
-          # ── Calendario GP 2026 (start_time in UTC) ───────────────────
-          # Australia/China/Japan già disputati — non inclusi
-          # Bahrain e Saudi cancellati — non inclusi
           GP_DATA=(
             "Miami Grand Prix|2026-05-03T20:00:00Z"
             "Canadian Grand Prix|2026-05-24T18:00:00Z"
@@ -42,51 +41,49 @@ jobs:
           )
 
           NOW_EPOCH=$(date -u +%s)
-          # Finestra: da adesso fino a 24h — la gara deve essere nel futuro
           WINDOW_END=$(( NOW_EPOCH + 86400 ))
 
           FOUND_GP=""
           FOUND_TIME=""
+          HOURS_LEFT=""
 
           for entry in "${GP_DATA[@]}"; do
             GP_NAME="${entry%%|*}"
             GP_TIME="${entry##*|}"
             GP_EPOCH=$(date -u -d "$GP_TIME" +%s 2>/dev/null)
+            if [ -z "$GP_EPOCH" ]; then continue; fi
 
-            if [ -z "$GP_EPOCH" ]; then
-              echo "WARN: impossibile parsare la data per $GP_NAME ($GP_TIME)"
-              continue
-            fi
-
-            # La gara deve essere nel futuro e nelle prossime 24h
             if [ "$GP_EPOCH" -gt "$NOW_EPOCH" ] && [ "$GP_EPOCH" -le "$WINDOW_END" ]; then
               FOUND_GP="$GP_NAME"
               FOUND_TIME="$GP_TIME"
               HOURS_LEFT=$(( (GP_EPOCH - NOW_EPOCH) / 3600 ))
-              echo "✓ GP trovato nelle prossime 24h: $GP_NAME alle $GP_TIME UTC (tra ~${HOURS_LEFT}h)"
+              echo "✓ Trovato: $FOUND_GP tra ~${HOURS_LEFT}h"
               break
             fi
           done
 
           if [ -z "$FOUND_GP" ]; then
-            echo "Nessun GP nelle prossime 24h. Nulla da fare."
+            echo "Nessun GP nelle prossime 24h."
+            echo "found=false" >> $GITHUB_OUTPUT
             exit 0
           fi
 
-          # ── Componi messaggio ─────────────────────────────────────────
-          GP_EPOCH=$(date -u -d "$FOUND_TIME" +%s)
-          HOURS_LEFT=$(( (GP_EPOCH - NOW_EPOCH) / 3600 ))
           RACE_TIME_IT=$(TZ='Europe/Rome' date -d "$FOUND_TIME" '+%H:%M')
+          MSG="REMINDER: ${FOUND_GP} OGGI alle ${RACE_TIME_IT} ora italiana (tra circa ${HOURS_LEFT}h). Ultimi pronostici entro l'inizio gara!"
 
-          # Costruisci il testo senza caratteri problematici per JSON
-          MSG_TEXT="REMINDER: ${FOUND_GP} OGGI alle ${RACE_TIME_IT} ora italiana (tra circa ${HOURS_LEFT}h). Ultimi pronostici entro l'inizio gara!"
+          echo "found=true"          >> $GITHUB_OUTPUT
+          echo "gp_name=$FOUND_GP"  >> $GITHUB_OUTPUT
+          echo "hours=$HOURS_LEFT"  >> $GITHUB_OUTPUT
+          echo "msg=$MSG"           >> $GITHUB_OUTPUT
 
-          echo "Messaggio da inviare: $MSG_TEXT"
+      # ── Step 2: Team Radio message ──────────────────────────────
+      - name: Send Team Radio message
+        if: steps.find_gp.outputs.found == 'true'
+        run: |
+          PAYLOAD=$(printf '{"team_id":"RC","team_name":"RC","text":"%s"}' \
+            "${{ steps.find_gp.outputs.msg }}")
 
-          # ── Invia su Team Radio via Supabase REST API ─────────────────
-          PAYLOAD=$(printf '{"team_id":"RC","team_name":"RC","text":"%s"}' "$MSG_TEXT")
-
-          RESPONSE=$(curl -s -o /tmp/sb_response.json -w "%{http_code}" \
+          RESPONSE=$(curl -s -o /tmp/sb_resp.json -w "%{http_code}" \
             -X POST \
             "${{ secrets.SUPABASE_URL }}/rest/v1/messages" \
             -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
@@ -95,12 +92,109 @@ jobs:
             -H "Prefer: return=minimal" \
             -d "$PAYLOAD")
 
-          echo "HTTP Status: $RESPONSE"
-          cat /tmp/sb_response.json || true
+          echo "Team Radio HTTP: $RESPONSE"
+          cat /tmp/sb_resp.json || true
 
-          if [ "$RESPONSE" = "201" ] || [ "$RESPONSE" = "200" ]; then
-            echo "✓ Reminder inviato su Team Radio!"
-          else
-            echo "✗ Errore Supabase (HTTP $RESPONSE)"
+          if [ "$RESPONSE" != "201" ] && [ "$RESPONSE" != "200" ]; then
+            echo "✗ Errore Team Radio (HTTP $RESPONSE)"
             exit 1
           fi
+          echo "✓ Messaggio Team Radio inviato"
+
+      # ── Step 3: Push notifications reali ────────────────────────
+      - name: Send push notifications
+        if: steps.find_gp.outputs.found == 'true'
+        env:
+          SUPABASE_URL:      ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          VAPID_PUBLIC_KEY:  ${{ secrets.VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          MSG_TEXT:          ${{ steps.find_gp.outputs.msg }}
+          GP_NAME:           ${{ steps.find_gp.outputs.gp_name }}
+        run: |
+          echo "Installazione web-push..."
+          npm install web-push --no-save --silent
+
+          node << 'EOF'
+          const webpush = require('web-push');
+
+          webpush.setVapidDetails(
+            'mailto:fantapodio2026@example.com',
+            process.env.VAPID_PUBLIC_KEY,
+            process.env.VAPID_PRIVATE_KEY
+          );
+
+          async function main() {
+            // Fetch subscriptions da Supabase
+            const res = await fetch(
+              `${process.env.SUPABASE_URL}/rest/v1/push_subscriptions?select=*`,
+              {
+                headers: {
+                  'apikey': process.env.SUPABASE_ANON_KEY,
+                  'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY}`,
+                },
+              }
+            );
+
+            if (!res.ok) {
+              console.error('Errore fetch subscriptions:', res.status, await res.text());
+              process.exit(1);
+            }
+
+            const subs = await res.json();
+            console.log(`Subscriptions trovate: ${subs.length}`);
+
+            if (subs.length === 0) {
+              console.log('Nessuna subscription — skip push.');
+              return;
+            }
+
+            const payload = JSON.stringify({
+              title: '🏁 Fantapodio 2026',
+              body: process.env.MSG_TEXT,
+              url: 'https://fantapodio2026-rc7.vercel.app',
+            });
+
+            // Invia push a tutti i device
+            const results = await Promise.allSettled(
+              subs.map(sub =>
+                webpush.sendNotification(
+                  { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+                  payload
+                )
+              )
+            );
+
+            const ok   = results.filter(r => r.status === 'fulfilled').length;
+            const fail = results.filter(r => r.status === 'rejected').length;
+            console.log(`Push inviati: ${ok} ok, ${fail} falliti`);
+
+            // Rimuovi subscriptions scadute (410 Gone)
+            const expiredEndpoints = results
+              .map((r, i) =>
+                r.status === 'rejected' && r.reason?.statusCode === 410
+                  ? subs[i].endpoint
+                  : null
+              )
+              .filter(Boolean);
+
+            for (const endpoint of expiredEndpoints) {
+              await fetch(
+                `${process.env.SUPABASE_URL}/rest/v1/push_subscriptions?endpoint=eq.${encodeURIComponent(endpoint)}`,
+                {
+                  method: 'DELETE',
+                  headers: {
+                    'apikey': process.env.SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY}`,
+                  },
+                }
+              );
+            }
+
+            if (expiredEndpoints.length > 0) {
+              console.log(`Rimosse ${expiredEndpoints.length} subscriptions scadute`);
+            }
+          }
+
+          main().catch(e => { console.error(e); process.exit(1); });
+          EOF

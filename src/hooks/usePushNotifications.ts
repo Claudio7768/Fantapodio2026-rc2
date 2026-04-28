@@ -1,85 +1,116 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-const VAPID_PUBLIC_KEY = 'BGHXri_0LC2iM3UeFLT64M0qPcpakKe_KR7VuvF82USRdxUBB0GXzGNM_C3nDzZgOZWxC9KQFD2arRKe2V3-tnA';
+// Chiave pubblica VAPID — deve corrispondere a VITE_VAPID_PUBLIC_KEY in Vercel
+const VAPID_PUBLIC_KEY =
+  import.meta.env.VITE_VAPID_PUBLIC_KEY ||
+  'BPvCYNyzF6nRlQKMUHnDkJeM9c4V3Z5w6xjVHvyujTe6NDR0njMagShL6yin8QMXLKiT_KB24XtiTod89twI8uQ';
 
-function urlBase64ToUint8Array(base64String: string) {
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const rawData = atob(base64);
-  return new Uint8Array([...rawData].map(c => c.charCodeAt(0)));
+  const rawData = window.atob(base64);
+  const arr = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) arr[i] = rawData.charCodeAt(i);
+  return arr;
 }
 
 export function usePushNotifications(teamId: string | null) {
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [subscribed, setSubscribed] = useState(false);
+  const [supported, setSupported] = useState(false);
+  const [loading, setLoading] = useState(false);
 
+  // Check supporto e stato iniziale
   useEffect(() => {
-    if (typeof Notification !== 'undefined') {
+    const ok =
+      'serviceWorker' in navigator &&
+      'PushManager' in window &&
+      'Notification' in window;
+    setSupported(ok);
+    if (ok) {
       setPermission(Notification.permission);
-      if (Notification.permission === 'granted') {
-        checkExistingSubscription();
-      }
+      checkCurrentSubscription();
     }
-  }, [teamId]);
+  }, []);
 
-  const checkExistingSubscription = async () => {
-    if (!('serviceWorker' in navigator)) return;
-    const reg = await navigator.serviceWorker.ready;
-    const sub = await reg.pushManager.getSubscription();
-    setSubscribed(!!sub);
+  const checkCurrentSubscription = async () => {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      setSubscribed(!!sub);
+    } catch {
+      setSubscribed(false);
+    }
   };
 
-  const subscribe = async (): Promise<boolean> => {
-    if (!teamId) return false;
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      alert('Le notifiche push non sono supportate su questo browser.');
-      return false;
-    }
-
+  const subscribe = async () => {
+    if (!supported || !teamId) return;
+    setLoading(true);
     try {
       // Richiedi permesso
-      const result = await Notification.requestPermission();
-      setPermission(result);
-      if (result !== 'granted') return false;
+      const perm = await Notification.requestPermission();
+      setPermission(perm);
+      if (perm !== 'granted') return;
 
-      // Ottieni/crea subscription
+      // Ottieni registrazione SW
       const reg = await navigator.serviceWorker.ready;
-      let sub = await reg.pushManager.getSubscription();
-      if (!sub) {
-        sub = await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-        });
+
+      // Sottoscrivi push
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+
+      const subJson = sub.toJSON() as {
+        endpoint: string;
+        keys: { p256dh: string; auth: string };
+      };
+
+      // Salva su Supabase
+      const { error } = await supabase.from('push_subscriptions').upsert(
+        {
+          team_id: teamId,
+          endpoint: subJson.endpoint,
+          p256dh: subJson.keys.p256dh,
+          auth: subJson.keys.auth,
+        },
+        { onConflict: 'endpoint' }
+      );
+
+      if (error) {
+        console.error('Errore salvataggio subscription:', error);
+        return;
       }
 
-      // Salva in Supabase
-      const subJson = sub.toJSON();
-      await supabase.from('push_subscriptions').upsert({
-        team_id: teamId,
-        endpoint: subJson.endpoint,
-        subscription: subJson,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'endpoint' });
-
       setSubscribed(true);
-      return true;
     } catch (err) {
-      console.error('Push subscription error:', err);
-      return false;
+      console.error('Errore push subscription:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const unsubscribe = async () => {
-    const reg = await navigator.serviceWorker.ready;
-    const sub = await reg.pushManager.getSubscription();
-    if (sub) {
-      await sub.unsubscribe();
-      await supabase.from('push_subscriptions')
-        .delete().eq('endpoint', sub.endpoint);
+    if (!supported) return;
+    setLoading(true);
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        await supabase
+          .from('push_subscriptions')
+          .delete()
+          .eq('endpoint', sub.endpoint);
+        await sub.unsubscribe();
+      }
+      setSubscribed(false);
+    } catch (err) {
+      console.error('Errore unsubscribe:', err);
+    } finally {
+      setLoading(false);
     }
-    setSubscribed(false);
   };
 
-  return { permission, subscribed, subscribe, unsubscribe };
+  return { permission, subscribed, supported, loading, subscribe, unsubscribe };
 }
