@@ -2,8 +2,9 @@ name: GP 24h Reminder
 
 on:
   schedule:
-    # Ogni giorno alle 10:00 UTC
-    - cron: '0 10 * * *'
+    # Ogni giorno alle 08:00 UTC (= 10:00 ora italiana)
+    # Controlla se c'è una gara nelle prossime 24h
+    - cron: '0 8 * * *'
   workflow_dispatch: # Permette esecuzione manuale dal dashboard GitHub
 
 jobs:
@@ -13,9 +14,10 @@ jobs:
       - name: Check upcoming GPs and send Team Radio reminder
         run: |
           echo "=== GP 24h Reminder ==="
-          echo "Checking date: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          echo "Ora attuale UTC: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 
           # ── Calendario GP 2026 (start_time in UTC) ───────────────────
+          # Australia/China/Japan già disputati — non inclusi
           # Bahrain e Saudi cancellati — non inclusi
           GP_DATA=(
             "Miami Grand Prix|2026-05-03T20:00:00Z"
@@ -40,9 +42,8 @@ jobs:
           )
 
           NOW_EPOCH=$(date -u +%s)
-          # Finestra: tra 20h e 26h da adesso (per coprire run giornalieri)
-          WINDOW_START=$(( NOW_EPOCH + 20*3600 ))
-          WINDOW_END=$(( NOW_EPOCH + 26*3600 ))
+          # Finestra: da adesso fino a 24h — la gara deve essere nel futuro
+          WINDOW_END=$(( NOW_EPOCH + 86400 ))
 
           FOUND_GP=""
           FOUND_TIME=""
@@ -50,17 +51,19 @@ jobs:
           for entry in "${GP_DATA[@]}"; do
             GP_NAME="${entry%%|*}"
             GP_TIME="${entry##*|}"
-            GP_EPOCH=$(date -u -d "$GP_TIME" +%s 2>/dev/null || date -u -jf "%Y-%m-%dT%H:%M:%SZ" "$GP_TIME" +%s 2>/dev/null)
+            GP_EPOCH=$(date -u -d "$GP_TIME" +%s 2>/dev/null)
 
             if [ -z "$GP_EPOCH" ]; then
               echo "WARN: impossibile parsare la data per $GP_NAME ($GP_TIME)"
               continue
             fi
 
-            if [ "$GP_EPOCH" -ge "$WINDOW_START" ] && [ "$GP_EPOCH" -le "$WINDOW_END" ]; then
+            # La gara deve essere nel futuro e nelle prossime 24h
+            if [ "$GP_EPOCH" -gt "$NOW_EPOCH" ] && [ "$GP_EPOCH" -le "$WINDOW_END" ]; then
               FOUND_GP="$GP_NAME"
               FOUND_TIME="$GP_TIME"
-              echo "✓ GP trovato nella finestra 24h: $GP_NAME alle $GP_TIME UTC"
+              HOURS_LEFT=$(( (GP_EPOCH - NOW_EPOCH) / 3600 ))
+              echo "✓ GP trovato nelle prossime 24h: $GP_NAME alle $GP_TIME UTC (tra ~${HOURS_LEFT}h)"
               break
             fi
           done
@@ -70,30 +73,34 @@ jobs:
             exit 0
           fi
 
-          # ── Calcola ore mancanti ──────────────────────────────────────
-          GP_EPOCH=$(date -u -d "$FOUND_TIME" +%s 2>/dev/null || date -u -jf "%Y-%m-%dT%H:%M:%SZ" "$FOUND_TIME" +%s 2>/dev/null)
+          # ── Componi messaggio ─────────────────────────────────────────
+          GP_EPOCH=$(date -u -d "$FOUND_TIME" +%s)
           HOURS_LEFT=$(( (GP_EPOCH - NOW_EPOCH) / 3600 ))
+          RACE_TIME_IT=$(TZ='Europe/Rome' date -d "$FOUND_TIME" '+%H:%M')
 
-          # ── Invia messaggio su Team Radio via Supabase REST API ───────
-          MESSAGE="🏁 REMINDER: ${FOUND_GP} tra circa ${HOURS_LEFT} ore! ⏱️ Deadline pronostici: adesso. Ultima chiamata per i vostri pick! 🏎️"
+          # Costruisci il testo senza caratteri problematici per JSON
+          MSG_TEXT="REMINDER: ${FOUND_GP} OGGI alle ${RACE_TIME_IT} ora italiana (tra circa ${HOURS_LEFT}h). Ultimi pronostici entro l'inizio gara!"
 
-          echo "Invio messaggio Team Radio: $MESSAGE"
+          echo "Messaggio da inviare: $MSG_TEXT"
 
-          RESPONSE=$(curl -s -o /tmp/supabase_response.json -w "%{http_code}" \
+          # ── Invia su Team Radio via Supabase REST API ─────────────────
+          PAYLOAD=$(printf '{"team_id":"RC","team_name":"RC","text":"%s"}' "$MSG_TEXT")
+
+          RESPONSE=$(curl -s -o /tmp/sb_response.json -w "%{http_code}" \
             -X POST \
             "${{ secrets.SUPABASE_URL }}/rest/v1/messages" \
             -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
             -H "Content-Type: application/json" \
             -H "Prefer: return=minimal" \
-            -d "{\"team_id\": \"RC\", \"team_name\": \"RC\", \"text\": \"$(echo $MESSAGE | sed 's/"/\\"/g')\"}")
+            -d "$PAYLOAD")
 
           echo "HTTP Status: $RESPONSE"
-          cat /tmp/supabase_response.json
+          cat /tmp/sb_response.json || true
 
           if [ "$RESPONSE" = "201" ] || [ "$RESPONSE" = "200" ]; then
-            echo "✓ Messaggio inviato con successo su Team Radio!"
+            echo "✓ Reminder inviato su Team Radio!"
           else
-            echo "✗ Errore nell'invio del messaggio (HTTP $RESPONSE)"
+            echo "✗ Errore Supabase (HTTP $RESPONSE)"
             exit 1
           fi
