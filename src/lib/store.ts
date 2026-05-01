@@ -107,14 +107,13 @@ export async function loginTeam(
   name: string,
   password: string
 ): Promise<{ success: boolean; user?: { team_id: string; team_name: string }; error?: string }> {
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .ilike('team_name', name.trim())
-    .single();
+  const { data, error } = await supabase.rpc('login_team', {
+    p_team_name: name.trim(),
+    p_password: password,
+  });
 
-  if (error || !data) return { success: false, error: 'Team non trovato. Registrati prima.' };
-  if (data.password !== password) return { success: false, error: 'Password errata.' };
+  if (error) return { success: false, error: 'Errore di connessione. Riprova.' };
+  if (!data.success) return { success: false, error: data.error };
 
   const user = { team_id: data.team_id, team_name: data.team_name };
   setCurrentUser(user);
@@ -127,22 +126,14 @@ export async function registerTeam(
 ): Promise<{ success: boolean; error?: string }> {
   const trimmed = name.trim();
 
-  const { data: existing } = await supabase
-    .from('users')
-    .select('id')
-    .ilike('team_name', trimmed)
-    .single();
+  const { data, error } = await supabase.rpc('register_team', {
+    p_team_name: trimmed,
+    p_password: password,
+    p_team_id: trimmed,
+  });
 
-  if (existing) return { success: false, error: 'Questo nome team è già in uso.' };
-
-  const { error } = await supabase
-    .from('users')
-    .insert({ team_id: trimmed, team_name: trimmed, password })
-    .select()
-    .single();
-
-  if (error) return { success: false, error: 'Errore durante la registrazione.' };
-  return { success: true };
+  if (error) return { success: false, error: 'Errore di connessione. Riprova.' };
+  return data;
 }
 
 // ── Submit Prediction ─────────────────────────────────────────
