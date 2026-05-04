@@ -241,7 +241,7 @@ export async function resetApp(password: string): Promise<boolean> {
   if (password !== 'FANTAPODIO2026') return false;
   await supabase.from('predictions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
   await supabase.from('results').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-  await supabase.from('users').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  await supabase.rpc('reset_users');
   await supabase.from('gps').update({ completed: false }).neq('id', '');
   Object.keys(localStorage).filter(k => k.startsWith('fp_attempts_')).forEach(k => localStorage.removeItem(k));
   return true;
