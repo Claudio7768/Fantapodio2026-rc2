@@ -93,11 +93,11 @@ export const INITIAL_TEAMS: Team[] = [
 // Due gare in Spagna: Barcelona-Catalunya (Jun) + Madrid (Sep) — novità 2026
 // Imola (Emilia Romagna) rimossa dal calendario
 // Azerbaijan e Las Vegas: gare di sabato
+// Bahrain: reinserito il 4 ottobre 2026 (tra Azerbaijan e Singapore) dopo la cancellazione originaria
 export const INITIAL_GPS: GP[] = [
   { id: 'australia',  name: 'Australian Grand Prix',          location: 'Melbourne',   date: '2026-03-08', start_time: '2026-03-08T04:00:00Z', completed: true  },
   { id: 'china',      name: 'Chinese Grand Prix',             location: 'Shanghai',    date: '2026-03-15', start_time: '2026-03-15T07:00:00Z', completed: false },
   { id: 'japan',      name: 'Japanese Grand Prix',            location: 'Suzuka',      date: '2026-03-29', start_time: '2026-03-29T05:00:00Z', completed: false },
-  { id: 'bahrain',    name: 'Bahrain Grand Prix',             location: 'Sakhir',      date: '2026-04-12', start_time: '2026-04-12T14:00:00Z', completed: false, cancelled: true },
   { id: 'saudi',      name: 'Saudi Arabian Grand Prix',       location: 'Jeddah',      date: '2026-04-19', start_time: '2026-04-19T17:00:00Z', completed: false, cancelled: true },
   { id: 'miami',      name: 'Miami Grand Prix',               location: 'Miami',       date: '2026-05-03', start_time: '2026-05-03T20:00:00Z', completed: false },
   { id: 'canada',     name: 'Canadian Grand Prix',            location: 'Montréal',    date: '2026-05-24', start_time: '2026-05-24T18:00:00Z', completed: false },
@@ -111,6 +111,7 @@ export const INITIAL_GPS: GP[] = [
   { id: 'italy',      name: 'Italian Grand Prix',             location: 'Monza',       date: '2026-09-06', start_time: '2026-09-06T13:00:00Z', completed: false },
   { id: 'madrid',     name: 'Madrid Grand Prix',              location: 'Madrid',      date: '2026-09-13', start_time: '2026-09-13T13:00:00Z', completed: false },
   { id: 'azerbaijan', name: 'Azerbaijan Grand Prix',          location: 'Baku',        date: '2026-09-26', start_time: '2026-09-26T11:00:00Z', completed: false },
+  { id: 'bahrain',    name: 'Bahrain Grand Prix',             location: 'Sakhir',      date: '2026-10-04', start_time: '2026-10-04T07:00:00Z', completed: false },
   { id: 'singapore',  name: 'Singapore Grand Prix',           location: 'Marina Bay',  date: '2026-10-11', start_time: '2026-10-11T12:00:00Z', completed: false },
   { id: 'usa',        name: 'United States Grand Prix',       location: 'Austin',      date: '2026-10-25', start_time: '2026-10-25T19:00:00Z', completed: false },
   { id: 'mexico',     name: 'Mexico City Grand Prix',         location: 'Mexico City', date: '2026-11-01', start_time: '2026-11-01T20:00:00Z', completed: false },
