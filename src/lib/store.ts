@@ -211,7 +211,7 @@ export function getSeasonStats(
       const s = calcScore(pred, res);
       total_score += s;
       if (s > best_score) best_score = s;
-      if (s === 75) perfect_podiums++;
+      if (pred.p1 === res.p1 && pred.p2 === res.p2 && pred.p3 === res.p3) perfect_podiums++;
     });
 
     return {

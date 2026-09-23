@@ -10,12 +10,16 @@ interface Props {
 }
 
 // Mappa GP ID → numero round 2026
+// Round FIA ufficiali stagione 2026 (fonte: calendario F1 / Wikipedia).
+// La Saudi Arabian GP resta cancellata (nessun round assegnato: l'API non la troverà mai, per design).
+// Il Bahrain GP è stato reinserito come round 16 (Sepang, 4 ottobre) tra Azerbaijan e Singapore,
+// il che ha fatto slittare di una posizione tutti i round da Miami in poi.
 const GP_ROUND: Record<string, number> = {
-  australia: 1, china: 2, japan: 3, bahrain: 4, saudi: 5,
-  miami: 6, canada: 7, monaco: 8, barcelona: 9, austria: 10,
-  britain: 11, belgium: 12, hungary: 13, netherlands: 14, italy: 15,
-  madrid: 16, azerbaijan: 17, singapore: 18, usa: 19, mexico: 20,
-  brazil: 21, lasvegas: 22, qatar: 23, abudhabi: 24,
+  australia: 1, china: 2, japan: 3,
+  miami: 4, canada: 5, monaco: 6, barcelona: 7, austria: 8,
+  britain: 9, belgium: 10, hungary: 11, netherlands: 12, italy: 13,
+  madrid: 14, azerbaijan: 15, bahrain: 16, singapore: 17, usa: 18,
+  mexico: 19, brazil: 20, lasvegas: 21, qatar: 22, abudhabi: 23,
 };
 
 // Mappa constructor name Jolpica → team name app
